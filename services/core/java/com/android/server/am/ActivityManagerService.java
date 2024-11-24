@@ -19613,4 +19613,10 @@ public class ActivityManagerService extends IActivityManager.Stub
                 minAdj, maxKillCount, includeUIProcesses, skipCamera);
         });
     }
+
+    @Override
+    public boolean shouldForceLongScreen(String packageName) {
+        return mActivityTaskManager.shouldForceLongScreen(packageName);
+    }
+
 }
