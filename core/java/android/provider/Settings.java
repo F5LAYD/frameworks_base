@@ -14650,6 +14650,12 @@ public final class Settings {
         public static final String GAME_OVERLAY = "game_overlay";
 
         /**
+         * Whether to use system accent color for lock screen clock text
+         * @hide
+         */
+        public static final String CLOCK_TEXT_ACCENT_COLOR = "clock_text_accent_color";
+
+        /**
          * Whether to show an overlay in the bottom corner of the screen on copying stuff
          * into the clipboard.
          * @hide

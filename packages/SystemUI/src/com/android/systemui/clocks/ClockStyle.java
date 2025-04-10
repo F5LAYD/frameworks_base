@@ -66,6 +66,7 @@ public class ClockStyle extends RelativeLayout implements TunerService.Tunable {
 
     private static final int DEFAULT_STYLE = 0; // Disabled
     public static final String CLOCK_STYLE_KEY = "clock_style";
+    public static final String CLOCK_TEXT_COLOR_KEY = "clock_text_accent_color";
 
     private final Context mContext;
     private final KeyguardManager mKeyguardManager;
@@ -76,6 +77,8 @@ public class ClockStyle extends RelativeLayout implements TunerService.Tunable {
 
     private static final long UPDATE_INTERVAL_MILLIS = 15 * 1000;
     private long lastUpdateTimeMillis = 0;
+
+    private boolean mUseAccentColor = false;
 
     private final StatusBarStateController mStatusBarStateController;
 
@@ -138,7 +141,7 @@ public class ClockStyle extends RelativeLayout implements TunerService.Tunable {
         mContext = context;
         mKeyguardManager = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
         mTunerService = Dependency.get(TunerService.class);
-        mTunerService.addTunable(this, CLOCK_STYLE_KEY);
+        mTunerService.addTunable(this, CLOCK_STYLE_KEY, CLOCK_TEXT_COLOR_KEY); 
         mStatusBarStateController = Dependency.get(StatusBarStateController.class);
         mStatusBarStateController.addCallback(mStatusBarStateListener);
         mStatusBarStateListener.onDozingChanged(mStatusBarStateController.isDozing());
@@ -216,6 +219,7 @@ public class ClockStyle extends RelativeLayout implements TunerService.Tunable {
                 if (currentClockView instanceof LinearLayout) {
                     ((LinearLayout) currentClockView).setGravity(gravity);
                 }
+                updateClockTextColor();
             }
         }
         onTimeChanged();
@@ -233,6 +237,37 @@ public class ClockStyle extends RelativeLayout implements TunerService.Tunable {
                 }
                 updateClockView();
                 break;
+            case CLOCK_TEXT_COLOR_KEY:
+                mUseAccentColor = TunerService.parseIntegerSwitch(newValue, false);
+                updateClockTextColor();
+                break;
+        }
+    }
+
+    private void updateClockTextColor() {
+        if (currentClockView != null) {
+            updateTextClockColor(currentClockView);
+        }
+    }
+
+    private void updateTextClockColor(View view) {
+        if (view instanceof ViewGroup) {
+            ViewGroup viewGroup = (ViewGroup) view;
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                View childView = viewGroup.getChildAt(i);
+                updateTextClockColor(childView);
+            }
+        }
+        
+        if (view instanceof TextClock) {
+            TextClock textClock = (TextClock) view;
+            if (mUseAccentColor) {
+                textClock.setTextColor(mContext.getColor(
+                    mContext.getResources().getIdentifier(
+                        "system_accent1_100", "color", "android")));
+            } else {
+                textClock.setTextColor(mContext.getColor(android.R.color.white));
+            }
         }
     }
 
