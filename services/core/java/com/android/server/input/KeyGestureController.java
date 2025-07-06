@@ -185,6 +185,8 @@ final class KeyGestureController {
 
     private final boolean mVisibleBackgroundUsersEnabled = isVisibleBackgroundUsersEnabled();
 
+    private boolean mBlockKeyChordScreenshot;
+
     public KeyGestureController(Context context, Looper looper, Looper ioLooper,
             InputDataStore inputDataStore) {
         this(context, looper, ioLooper, inputDataStore, new Injector());
@@ -240,6 +242,9 @@ final class KeyGestureController {
                 Settings.Global.KEY_CHORD_POWER_VOLUME_UP,
                 mContext.getResources().getInteger(
                         com.android.internal.R.integer.config_keyChordPowerVolumeUp));
+        mBlockKeyChordScreenshot = Settings.Secure.getIntForUser(resolver,
+                "nt_disable_combination_screenshot", 0,
+                UserHandle.USER_CURRENT) == 1;
     }
 
     private void initKeyCombinationRules() {
@@ -257,6 +262,7 @@ final class KeyGestureController {
                             KeyEvent.KEYCODE_POWER) {
                         @Override
                         public void execute() {
+                            if (mBlockKeyChordScreenshot) return;
                             handleMultiKeyGesture(
                                     new int[]{KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_POWER},
                                     KeyGestureEvent.KEY_GESTURE_TYPE_SCREENSHOT_CHORD,
@@ -1414,6 +1420,9 @@ final class KeyGestureController {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.Global.getUriFor(
                             Settings.Global.KEY_CHORD_POWER_VOLUME_UP), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.Secure.getUriFor(
+                            "nt_disable_combination_screenshot"), false, this,
                     UserHandle.USER_ALL);
         }
 
