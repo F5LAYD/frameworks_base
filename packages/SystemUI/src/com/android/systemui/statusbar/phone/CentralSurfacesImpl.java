@@ -63,8 +63,10 @@ import android.hardware.display.DisplayManager;
 import android.metrics.LogMaker;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.IBinder;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.Handler;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -573,7 +575,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces,
     private float mLastExpansionFraction = 0f;
 
     boolean mCloseQsBeforeScreenOff;
-
+    
     private final NotificationMediaManager mMediaManager;
     private final NotificationLockscreenUserManager mLockscreenUserManager;
     private final NotificationRemoteInputManager mRemoteInputManager;
