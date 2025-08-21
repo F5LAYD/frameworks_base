@@ -1046,6 +1046,10 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
                 mTmpApplySurfaceChangesTransactionState.displayHasContent |= displayHasContent;
             }
 
+            if (isDefaultDisplay && w.mHasSurface && w.isVisible()) {
+                NtRefreshRateController.get().voteNtPreferredModeId(w, getDisplayPolicy().isScreenOnFully());
+            }
+
             if (w.mHasSurface && isDisplayed) {
                 if ((w.mAttrs.flags & FLAG_KEEP_SCREEN_ON) != 0) {
                     mTmpHoldScreenWindow = w;
@@ -1260,6 +1264,9 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         mWmService.mInputManager.setInTouchMode(mInTouchMode, mWmService.MY_PID, mWmService.MY_UID,
                 /* hasPermission= */ true, mDisplayId);
         mAppCompatCameraPolicy.start();
+        if (isDefaultDisplay) {
+            NtRefreshRateController.get().init(mWmService.mContext, mWmService);
+        }
     }
 
     private void beginHoldScreenUpdate() {
@@ -4058,6 +4065,10 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         if (mDisplayId == DEFAULT_DISPLAY && newFocus != null) {
             GameSpaceService.get().onAppFocusChanged(newFocus, newTask);
         }
+
+        if (newFocus != null && isDefaultDisplay) {
+            NtRefreshRateController.get().updateFocusedApp(newFocus);
+        }
         getInputMonitor().setFocusedAppLw(newFocus);
         return true;
     }
@@ -5054,6 +5065,10 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         mInsetsStateController.onPostLayout();
 
         mTmpApplySurfaceChangesTransactionState.reset();
+        
+        if (isDefaultDisplay) {
+            NtRefreshRateController.get().resetNtVoteResult();
+        }
 
         Trace.traceBegin(TRACE_TAG_WINDOW_MANAGER, "applyWindowSurfaceChanges");
         try {
@@ -5070,6 +5085,18 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
 
         mLastHasContent = mTmpApplySurfaceChangesTransactionState.displayHasContent;
         if (!inTransition()) {
+            if (isDefaultDisplay) {
+                boolean windowPreferNone = mTmpApplySurfaceChangesTransactionState.preferredRefreshRate == INVALID_DPI 
+                    && mTmpApplySurfaceChangesTransactionState.preferredModeId == 0 
+                    && mTmpApplySurfaceChangesTransactionState.preferredMinRefreshRate == INVALID_DPI 
+                    && mTmpApplySurfaceChangesTransactionState.preferredMaxRefreshRate == INVALID_DPI;
+                NtRefreshRateController.get().updateVoteResult();
+                if (windowPreferNone || NtRefreshRateController.get().OverrideWinPrefer()) {
+                    mTmpApplySurfaceChangesTransactionState.preferredModeId = NtRefreshRateController.get().getPreferMode();
+                    mTmpApplySurfaceChangesTransactionState.preferredMinRefreshRate = NtRefreshRateController.get().getMinPreferRate();
+                    mTmpApplySurfaceChangesTransactionState.preferredMaxRefreshRate = NtRefreshRateController.get().getMaxPreferRate();
+                }
+            }
             mWmService.mDisplayManagerInternal.setDisplayProperties(mDisplayId,
                     mLastHasContent,
                     mTmpApplySurfaceChangesTransactionState.preferredRefreshRate,
