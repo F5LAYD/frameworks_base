@@ -7131,6 +7131,12 @@ public final class Settings {
         public static final String TINT_STATUSBAR_ICONS_WITH_ACCENT = "tint_statusbar_icons_with_accent";
 
         /**
+         * Whether to show Chinese lunar calendar in the quick settings header.
+         * @hide
+         */
+        public static final String QS_SHOW_LUNAR_CALENDAR = "qs_show_lunar_calendar";
+
+        /**
          * Ramping ringer total duration in seconds
          * @hide
          */
