@@ -7135,6 +7135,7 @@ public final class Settings {
          * 0 = Default
          * 1 = Lunar (Chinese)
          * 2 = Saka (Indian)
+         * 3 = Bangabda (Indian)
          * @hide
          */
         public static final String QS_CALENDAR_TYPE = "qs_calendar_type";
