@@ -187,6 +187,7 @@ import com.android.server.grammaticalinflection.GrammaticalInflectionService;
 import com.android.server.graphics.fonts.FontManagerService;
 import com.android.server.hdmi.HdmiControlService;
 import com.android.server.incident.IncidentCompanionService;
+import com.android.server.ims.ImsConfigOverrideService;
 import com.android.server.input.InputManagerService;
 import com.android.server.inputmethod.InputMethodManagerService;
 import com.android.server.integrity.AppIntegrityManagerService;
@@ -2891,6 +2892,11 @@ public final class SystemServer implements Dumpable {
             String hbmFile = SystemProperties.get("persist.sys.hbmservice_file");
             if (hbmSupported && hbmFile != null && !hbmFile.isEmpty()) {
                 mSystemServiceManager.startService(HbmService.class);
+            }
+
+            if (SystemProperties.getBoolean(
+                    "persist.sys.target_enables_ims_override", false)) {
+                mSystemServiceManager.startService(ImsConfigOverrideService.class);
             }
         }
 
