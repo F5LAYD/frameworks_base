@@ -545,7 +545,11 @@ public class OomAdjuster {
                     + processName + " to " + group);
         }
         try {
-            android.os.Process.setProcessGroup(pid, group);
+            if (AxBurstEngine.isSupported()) {
+                AxBurstEngine.scheduleProcess(pid, group, processName);
+            } else {
+                Process.setProcessGroup(pid, group);
+            }
         } catch (Exception e) {
             if (DEBUG_ALL) {
                 Slog.w(TAG, "Failed setting process group of " + pid + " to " + group, e);
@@ -3659,14 +3663,25 @@ public class OomAdjuster {
                     processGroup = THREAD_GROUP_TOP_APP;
                     break;
                 case SCHED_GROUP_RESTRICTED:
-                    processGroup = THREAD_GROUP_RESTRICTED;
-                    break;
+                    if (AxUtils.isRestrictedNeedSelfControll(app)) {
+                        processGroup = AxUtils.THREAD_GROUP_NT_FOREGROUND;
+                        break;
+                    } else {
+                        processGroup = THREAD_GROUP_RESTRICTED;
+                        break;
+                    }
                 case SCHED_GROUP_FOREGROUND_WINDOW:
                     processGroup = THREAD_GROUP_FOREGROUND_WINDOW;
                     break;
+                case SCHED_GROUP_DEFAULT:
                 default:
-                    processGroup = THREAD_GROUP_DEFAULT;
-                    break;
+                    if (AxUtils.isForegroundNeedSelfControll(oldSchedGroup, app)) {
+                        processGroup = AxUtils.THREAD_GROUP_NT_FOREGROUND;
+                        break;
+                    } else {
+                        processGroup = THREAD_GROUP_DEFAULT;
+                        break;
+                    }
             }
             setAppAndChildProcessGroup(app, processGroup);
             try {

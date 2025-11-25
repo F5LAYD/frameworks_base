@@ -3367,6 +3367,8 @@ public class ActivityManagerService extends IActivityManager.Stub
         }
 
         mAppProfiler.onAppDiedLocked(app);
+        
+        AxBurstEngine.onProcessDied(pid);
 
         mAtmInternal.handleAppDied(app.getWindowProcessController(), restarting, () -> {
             Slog.w(TAG, "Crash of app " + app.processName
@@ -19529,5 +19531,17 @@ public class ActivityManagerService extends IActivityManager.Stub
             }
         }
         return token;
+    }
+    
+    public ProcessRecord getProcessRecordByPid(int pid) {
+        ProcessRecord curProc;
+        synchronized (mPidsSelfLocked) {
+            curProc = mPidsSelfLocked.get(pid);
+        }
+        if (curProc == null) {
+            Slog.d("getProcessRecordByPid", "pid: " + pid + " is not exist, return!");
+            return null;
+        }
+        return curProc;
     }
 }
