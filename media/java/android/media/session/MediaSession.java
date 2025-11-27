@@ -197,8 +197,12 @@ public final class MediaSession {
         }
 
         mContext = context;
-        mMaxBitmapSize = context.getResources().getDimensionPixelSize(
+
+        int bitmapSize = context.getResources().getDimensionPixelSize(
                 com.android.internal.R.dimen.config_mediaMetadataBitmapMaxSize);
+
+        mMaxBitmapSize = Math.min(bitmapSize, 300); 
+
         mCbStub = new CallbackStub(this);
         MediaSessionManager manager = (MediaSessionManager) context
                 .getSystemService(Context.MEDIA_SESSION_SERVICE);
