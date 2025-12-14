@@ -1872,6 +1872,11 @@ public class ActivityTaskSupervisor implements RecentTasks.Callbacks {
                 mService.mAmInternal, task.mUserId, component, new Intent(baseIntent));
         mService.mH.sendMessage(msg);
 
+        if (removeFromRecents) {
+            AxExtServiceFactory.getProcessManager().freezeSwipedApp(
+                    component.getPackageName(), task.mUserId);
+        }
+
         if (!killProcess) {
             return;
         }
