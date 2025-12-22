@@ -15,8 +15,8 @@
 package com.android.systemui.statusbar.phone;
 
 import android.content.Context;
-import android.graphics.drawable.AnimatedVectorDrawable;
 import android.util.AttributeSet;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 
 import com.android.systemui.res.R;
@@ -25,6 +25,7 @@ public class ExpandableIndicator extends ImageView {
 
     private boolean mExpanded;
     private boolean mIsDefaultDirection = true;
+    private static final int ROTATION_DURATION = 250;
 
     public ExpandableIndicator(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -40,13 +41,7 @@ public class ExpandableIndicator extends ImageView {
     public void setExpanded(boolean expanded) {
         if (expanded == mExpanded) return;
         mExpanded = expanded;
-        final int res = getDrawableResourceId(!mExpanded);
-        // workaround to reset drawable
-        final AnimatedVectorDrawable avd = (AnimatedVectorDrawable) getContext()
-                .getDrawable(res).getConstantState().newDrawable();
-        setImageDrawable(avd);
-        avd.forceAnimationOnUI();
-        avd.start();
+        animateRotation(expanded);
         setContentDescription(getContentDescription(expanded));
     }
 
@@ -56,14 +51,17 @@ public class ExpandableIndicator extends ImageView {
         updateIndicatorDrawable();
     }
 
-    private int getDrawableResourceId(boolean expanded) {
-        if (mIsDefaultDirection) {
-            return expanded ? R.drawable.ic_volume_collapse_animation
-                    : R.drawable.ic_volume_expand_animation;
-        } else {
-            return expanded ? R.drawable.ic_volume_expand_animation
-                    : R.drawable.ic_volume_collapse_animation;
+    private void animateRotation(boolean expanded) {
+        animate().cancel();
+        float targetRotation = expanded ? 180f : 0f;
+        if (!mIsDefaultDirection) {
+            targetRotation = -targetRotation;
         }
+        animate()
+                .rotation(targetRotation)
+                .setDuration(ROTATION_DURATION)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
     }
 
     private String getContentDescription(boolean expanded) {
@@ -72,7 +70,11 @@ public class ExpandableIndicator extends ImageView {
     }
 
     private void updateIndicatorDrawable() {
-        final int res = getDrawableResourceId(mExpanded);
-        setImageResource(res);
+        setImageResource(R.drawable.volume_settings);
+        float initialRotation = mExpanded ? 180f : 0f;
+        if (!mIsDefaultDirection) {
+            initialRotation = -initialRotation;
+        }
+        setRotation(initialRotation);
     }
 }

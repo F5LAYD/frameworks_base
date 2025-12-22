@@ -214,6 +214,9 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private static final int DRAWER_ANIMATION_DURATION = 250;
     private static final int DISPLAY_RANGE_MULTIPLIER = 100;
 
+    private static final long SQUISH_ANIMATION_DEBOUNCE_MS = 200;
+    private long mLastSquishAnimationTime = 0;
+
     /** Shows volume dialog show animation. */
     private static final String TYPE_SHOW = "show";
     /** Dismiss volume dialog animation.  */
@@ -769,8 +772,12 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                         (isWindowGravityLeft() ? -1 : 1) * mDialogView.getWidth() / 2.0f);
             }
             mDialogView.setAlpha(0);
+            mDialogView.setScaleX(0.95f);
+            mDialogView.setScaleY(0.95f);
             mDialogView.animate()
                     .alpha(1)
+                    .scaleX(1f)
+                    .scaleY(1f)
                     .translationX(0)
                     .setDuration(mDialogShowAnimationDurationMs)
                     .setListener(getJankListener(getDialogView(), TYPE_SHOW, mDialogTimeoutMillis))
@@ -1223,6 +1230,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         row.view = mDialog.getLayoutInflater().inflate(R.layout.volume_dialog_row, null);
         row.view.setId(row.stream);
         row.view.setTag(row);
+        row.view.setAlpha(1f);
         row.header = row.view.findViewById(R.id.volume_row_header);
         row.header.setId(20 * row.stream);
         if (stream == STREAM_ACCESSIBILITY) {
@@ -1347,6 +1355,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         incrementManualToggleCount();
         updateRingerH();
         provideTouchFeedbackH(newRingerMode);
+        triggerSquishAnimation();
         mController.setRingerMode(newRingerMode, false);
         maybeShowToastH(newRingerMode);
     }
@@ -1812,7 +1821,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                         mController.setStreamVolume(AudioManager.STREAM_RING, 1);
                     }
                 }
-
+                triggerSquishAnimation();
                 setRingerMode(newRingerMode);
             });
         }
@@ -2434,6 +2443,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     // animation behind the main row
                     if (isExpandableRow && isExpanded && row.view.getTranslationX() == 0f) {
                         row.view.setTranslationX(fromTranslationX);
+                        row.view.setAlpha(0f);
                     }
 
                     // The elevation should decrease from the outmost row to the inner rows, so that
@@ -2445,14 +2455,27 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     // Track how many rows are animating to avoid running animation end actions
                     // if there is still a row animating
                     mAnimatingRows++;
+                    
+                    final float targetAlpha = shouldBeVisible ? 1f : 0f;
+                    
                     row.view.animate()
                             .translationX(toTranslationX)
+                            .alpha(targetAlpha)
                             .setDuration(isExpanded ? mDialogShowAnimationDurationMs
                                                    : mDialogHideAnimationDurationMs)
                             .setInterpolator(isExpanded
                                             ? new SystemUIInterpolators.LogDecelerateInterpolator()
                                             : new SystemUIInterpolators.LogAccelerateInterpolator())
                             .setListener(new AnimatorListenerAdapter() {
+                                @Override
+                                public void onAnimationStart(Animator animation) {
+                                    if (isExpanded && isExpandableRow) {
+                                        row.view.setAlpha(0f);
+                                    } else if (!isExpanded && isExpandableRow) {
+                                        row.view.setAlpha(1f);
+                                    }
+                                }
+                                
                                 @Override
                                 public void onAnimationCancel(Animator animation) {
                                     mAnimatingRows--;
@@ -2464,6 +2487,9 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                                     row.view.setElevation(0);
                                     if (!shouldBeVisible) {
                                         row.view.setVisibility(View.INVISIBLE);
+                                        row.view.setAlpha(0f);
+                                    } else {
+                                        row.view.setAlpha(1f);
                                     }
                                     mAnimatingRows--;
                                     if (mAnimatingRows == 0) {
@@ -2480,6 +2506,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                             });
                 } else {
                     row.view.setTranslationX(toTranslationX);
+                    row.view.setAlpha(shouldBeVisible ? 1f : 0f);
                     row.view.setVisibility(shouldBeVisible ? View.VISIBLE : View.INVISIBLE);
                 }
             }
@@ -2874,6 +2901,32 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         updateVolumeRowSliderH(row, enable, vlevel, false);
     }
 
+    private void triggerSquishAnimation() {
+        if (mDialogView == null || !mShowing) return;
+        
+        long currentTime = SystemClock.uptimeMillis();
+        if (currentTime - mLastSquishAnimationTime < SQUISH_ANIMATION_DEBOUNCE_MS) {
+            return;
+        }
+        mLastSquishAnimationTime = currentTime;
+        
+        mDialogView.animate().cancel();
+        mDialogView.animate()
+                .scaleX(1.05f)
+                .scaleY(0.95f)
+                .setDuration(100)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> {
+                    mDialogView.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(150)
+                            .setInterpolator(new DecelerateInterpolator())
+                            .start();
+                })
+                .start();
+    }
+
     private void updateVolumeRowSliderH(VolumeRow row, boolean enable, int vlevel, boolean force) {
         row.slider.setEnabled(enable);
         updateVolumeRowTintH(row, row.stream == mActiveStream);
@@ -2881,6 +2934,55 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             return;  // don't update if user is sliding
         }
         final int progress = row.slider.getProgress();
+        
+        if (row.isAppVolume) {
+            final boolean rowVisible = row.view.getVisibility() == VISIBLE;
+            if (mShowing && rowVisible) {
+                boolean isAtMin = progress <= row.slider.getMin();
+                boolean isAtMax = progress >= row.slider.getMax();
+                
+                if (isAtMin || isAtMax) {
+                    triggerSquishAnimation();
+                }
+            }
+            
+            final int newProgress = Math.round(row.appVolume.getVolume() * 100f);
+            if (progress != newProgress || force) {
+                if (mIsTv) {
+                    row.slider.setProgress(newProgress, false);
+                    return;
+                }
+                if (mShowing && rowVisible) {
+                    if (row.anim != null && row.anim.isRunning()
+                            && row.animTargetProgress == newProgress) {
+                        return;
+                    }
+                    if (row.anim == null) {
+                        row.anim = ObjectAnimator.ofInt(row.slider, "progress", progress, newProgress);
+                        row.anim.setInterpolator(new DecelerateInterpolator());
+                        Animator.AnimatorListener listener =
+                                getJankListener(row.view, TYPE_UPDATE, UPDATE_ANIMATION_DURATION);
+                        if (listener != null) {
+                            row.anim.addListener(listener);
+                        }
+                    } else {
+                        row.anim.cancel();
+                        row.anim.setIntValues(progress, newProgress);
+                        row.deliverOnProgressChangedHaptics(false, newProgress);
+                    }
+                    row.animTargetProgress = newProgress;
+                    row.anim.setDuration(UPDATE_ANIMATION_DURATION);
+                    row.anim.start();
+                } else {
+                    if (row.anim != null) {
+                        row.anim.cancel();
+                    }
+                    row.slider.setProgress(newProgress, true);
+                }
+            }
+            return;
+        }
+        
         mVolumeUtils.performVolumeHaptics(mShowing, progress, row.ss.levelMax);
         final int level = getVolumeFromProgress(row.ss, row.slider, progress);
         final boolean rowVisible = row.view.getVisibility() == VISIBLE;
@@ -2898,6 +3000,24 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 return;  // don't clamp if visible
             }
         }
+        
+        if (mShowing && rowVisible) {
+            boolean isAtMin = vlevel <= row.ss.levelMin;
+            boolean isAtMax = vlevel >= row.ss.levelMax;
+            
+            boolean isImportantStream = row.stream == STREAM_MUSIC 
+                    || row.stream == STREAM_VOICE_CALL
+                    || row.stream == STREAM_ALARM
+                    || row.stream == STREAM_RING
+                    || row.stream == STREAM_NOTIFICATION
+                    || row.stream == STREAM_ACCESSIBILITY
+                    || row.stream == AudioManager.STREAM_SYSTEM;
+            
+            if ((isAtMin || isAtMax) && isImportantStream) {
+                triggerSquishAnimation();
+            }
+        }
+        
         final int newProgress = getProgressFromVolume(row.ss, row.slider, vlevel);
         if (progress != newProgress || force) {
             if (mIsTv) {
@@ -3409,6 +3529,9 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 if (D.BUG) Log.d(TAG, "set app " + mRow.packageName + " volume to " + vol);
                 mController.getAudioManager().setAppVolume(mRow.packageName, vol);
                 updateAppVolumeRows();
+                if (progress <= seekBar.getMin() || progress >= seekBar.getMax()) {
+                    triggerSquishAnimation();
+                }
                 return;
             }
             if (mRow.ss == null) return;
@@ -3420,6 +3543,21 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 }
             }
             final int userLevel = getVolumeFromProgress(mRow.ss, seekBar, progress);
+            
+            boolean isAtMin = userLevel <= mRow.ss.levelMin;
+            boolean isAtMax = userLevel >= mRow.ss.levelMax;
+            boolean isImportantStream = mRow.stream == STREAM_MUSIC 
+                    || mRow.stream == STREAM_VOICE_CALL
+                    || mRow.stream == STREAM_ALARM
+                    || mRow.stream == STREAM_RING
+                    || mRow.stream == STREAM_NOTIFICATION
+                    || mRow.stream == STREAM_ACCESSIBILITY
+                    || mRow.stream == AudioManager.STREAM_SYSTEM;
+            
+            if ((isAtMin || isAtMax) && isImportantStream && fromUser) {
+                triggerSquishAnimation();
+            }
+            
             if (mRow.ss.level != userLevel || mRow.ss.muted && userLevel > 0) {
                 mRow.userAttempt = SystemClock.uptimeMillis();
                 if (mRow.requestedLevel != userLevel) {
