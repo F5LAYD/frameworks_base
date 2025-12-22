@@ -16,6 +16,7 @@
 
 package com.android.systemui.media.ui.compose
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -46,11 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.systemui.media.ui.viewmodel.MiniPlayerViewModel
+import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.res.R
 
 @Composable
 fun MiniPlayerCompact(
     viewModel: MiniPlayerViewModel,
+    activityStarter: ActivityStarter? = null,
     compact: Boolean = true,
     expansionProgress: Float = if (compact) 0f else 1f,
     modifier: Modifier = Modifier
@@ -108,10 +111,16 @@ fun MiniPlayerCompact(
             .then(
                 if (isInteractive) {
                     Modifier.clickable {
-                        if (mediaState.hasActiveMedia && mediaState.packageName != null) {
-                            openMediaApp(context, mediaState.packageName!!)
+                        if (mediaState.hasActiveMedia) {
+                            if (mediaState.clickIntent != null && activityStarter != null) {
+                                activityStarter.postStartActivityDismissingKeyguard(
+                                    mediaState.clickIntent
+                                )
+                            } else if (mediaState.packageName != null) {
+                                openMediaApp(context, mediaState.packageName!!, activityStarter)
+                            }
                         } else {
-                            launchDefaultPlayer(context)
+                            launchDefaultPlayer(context, activityStarter)
                         }
                     }
                 } else {
@@ -180,7 +189,7 @@ fun MiniPlayerCompact(
                             if (mediaState.hasActiveMedia) {
                                 viewModel.playPause()
                             } else {
-                                launchDefaultPlayer(context)
+                                launchDefaultPlayer(context, activityStarter)
                             }
                         },
                         enabled = isInteractive,
@@ -219,25 +228,33 @@ fun MiniPlayerCompact(
     }
 }
 
-private fun openMediaApp(context: Context, pkg: String) {
+private fun openMediaApp(context: Context, pkg: String, activityStarter: ActivityStarter?) {
     runCatching {
         val intent = context.packageManager.getLaunchIntentForPackage(pkg)
         intent?.let {
-            it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(it)
+            if (activityStarter != null) {
+                activityStarter.postStartActivityDismissingKeyguard(it, 0)
+            } else {
+                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(it)
+            }
         }
     }.onFailure { e ->
         Log.e("MiniPlayer", "Failed to launch media app: $pkg", e)
     }
 }
 
-private fun launchDefaultPlayer(context: Context) {
+private fun launchDefaultPlayer(context: Context, activityStarter: ActivityStarter?) {
     runCatching {
         val intent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_APP_MUSIC)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-        context.startActivity(intent)
+        if (activityStarter != null) {
+            activityStarter.postStartActivityDismissingKeyguard(intent, 0)
+        } else {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        }
     }.onFailure { e ->
         Log.e("MiniPlayer", "Failed to launch default player", e)
     }

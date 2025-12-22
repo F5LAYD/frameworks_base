@@ -16,6 +16,7 @@
 
 package com.android.systemui.media.ui.viewmodel
 
+import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Context
 import android.database.ContentObserver
@@ -41,7 +42,8 @@ data class MediaState(
     val artist: String = "",
     val isPlaying: Boolean = false,
     val hasActiveMedia: Boolean = false,
-    val packageName: String? = null
+    val packageName: String? = null,
+    val clickIntent: PendingIntent? = null
 )
 
 class MiniPlayerViewModel @AssistedInject constructor(
@@ -151,7 +153,8 @@ class MiniPlayerViewModel @AssistedInject constructor(
                         ?: context.getString(R.string.media_unknown_artist),
                     isPlaying = state == PlaybackState.STATE_PLAYING,
                     hasActiveMedia = true,
-                    packageName = controller.packageName
+                    packageName = controller.packageName,
+                    clickIntent = controller.sessionActivity
                 )
             } else {
                 _mediaState.value = MediaState()

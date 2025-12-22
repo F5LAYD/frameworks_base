@@ -70,6 +70,7 @@ import com.android.systemui.media.controls.ui.view.MediaHostState.Companion.COLL
 import com.android.systemui.media.ui.compose.MiniPlayerCompact
 import com.android.systemui.media.ui.viewmodel.MiniPlayerViewModel
 import com.android.systemui.notifications.ui.composable.SnoozeableHeadsUpNotificationSpace
+import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.qs.composefragment.ui.GridAnchor
 import com.android.systemui.qs.flags.QsDetailedView
 import com.android.systemui.qs.panels.ui.compose.EditMode
@@ -105,6 +106,7 @@ constructor(
     private val contentViewModelFactory: QuickSettingsShadeOverlayContentViewModel.Factory,
     private val quickSettingsContainerViewModelFactory: QuickSettingsContainerViewModel.Factory,
     private val miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
+    private val activityStarter: ActivityStarter,
     private val notificationStackScrollView: Lazy<NotificationScrollView>,
     private val notificationsPlaceholderViewModelFactory: NotificationsPlaceholderViewModel.Factory,
 ) : Overlay {
@@ -163,6 +165,7 @@ constructor(
                 QuickSettingsContainer(
                     viewModel = quickSettingsContainerViewModel,
                     miniPlayerViewModelFactory = miniPlayerViewModelFactory,
+                    activityStarter = activityStarter,
                     modifier =
                         Modifier.onPlaced { coordinates ->
                             val shape =
@@ -206,6 +209,7 @@ private sealed interface ShadeBodyState {
 fun ContentScope.QuickSettingsContainer(
     viewModel: QuickSettingsContainerViewModel,
     miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
+    activityStarter: ActivityStarter,
     modifier: Modifier = Modifier,
 ) {
     val isEditing by viewModel.editModeViewModel.isEditing.collectAsStateWithLifecycle()
@@ -238,6 +242,7 @@ fun ContentScope.QuickSettingsContainer(
                 QuickSettingsLayout(
                     viewModel = viewModel,
                     miniPlayerViewModelFactory = miniPlayerViewModelFactory,
+                    activityStarter = activityStarter,
                     modifier = modifier.sysuiResTag("quick_settings_panel"),
                 )
             }
@@ -266,6 +271,7 @@ fun rememberMediaPlayerMode(): Int {
 fun ContentScope.QuickSettingsLayout(
     viewModel: QuickSettingsContainerViewModel,
     miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
+    activityStarter: ActivityStarter,
     modifier: Modifier = Modifier,
 ) {
     val mediaPlayerMode = rememberMediaPlayerMode()
@@ -328,6 +334,7 @@ fun ContentScope.QuickSettingsLayout(
                     }
                     MiniPlayerCompact(
                         viewModel = miniPlayerViewModel,
+                        activityStarter = activityStarter,
                         compact = true,
                         modifier = Modifier.fillMaxWidth()
                     )

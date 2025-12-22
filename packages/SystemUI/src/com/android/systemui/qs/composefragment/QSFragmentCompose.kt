@@ -127,6 +127,7 @@ import com.android.systemui.media.controls.ui.view.MediaHost
 import com.android.systemui.media.ui.compose.MiniPlayerCompact
 import com.android.systemui.media.ui.viewmodel.MiniPlayerViewModel
 import com.android.systemui.lifecycle.rememberViewModel
+import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.plugins.qs.QS
 import com.android.systemui.plugins.qs.QSContainerController
 import com.android.systemui.qs.composefragment.SceneKeys.QuickQuickSettings
@@ -188,6 +189,7 @@ class QSFragmentCompose
 constructor(
     private val qsFragmentComposeViewModelFactory: QSFragmentComposeViewModel.Factory,
     private val miniPlayerViewModelFactory: MiniPlayerViewModel.Factory,
+    private val activityStarter: ActivityStarter,
     private val dumpManager: DumpManager,
     private val tileShapeConfig: TileShapeConfig,
     private val tileSpacingConfig: TileSpacingConfig,
@@ -738,6 +740,7 @@ constructor(
                         if (shouldShow) {
                             MiniPlayerCompact(
                                 viewModel = miniPlayerViewModel,
+                                activityStarter = activityStarter,
                                 compact = true,
                                 expansionProgress = expansionProgress,
                                 modifier = Modifier.fillMaxWidth()
@@ -872,6 +875,7 @@ constructor(
                                 if (shouldShow) {
                                     MiniPlayerCompact(
                                         viewModel = miniPlayerViewModel,
+                                        activityStarter = activityStarter,
                                         compact = false,
                                         expansionProgress = expansionProgress,
                                         modifier = Modifier.fillMaxWidth()
