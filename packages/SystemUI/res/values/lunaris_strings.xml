@@ -176,4 +176,6 @@
     <string name="media_control_play_pause">Play/Pause</string>
     <string name="media_control_previous">Previous</string>
     <string name="media_control_next">Next</string>
+
+    <string name="flashlight_high_brightness_warning">High brightness may cause the flashlight and device to heat up</string>
 </resources>
