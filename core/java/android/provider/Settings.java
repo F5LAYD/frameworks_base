@@ -14429,10 +14429,16 @@ public final class Settings {
         public static final String QS_SHOW_MEDIA_PLAYER = "qs_show_media_player";
 
         /**
-	 * Enables ambient wallpaper and AOD enhancements (0 = disabled, 1 = enabled)
+         * Enables ambient wallpaper and AOD enhancements (0 = disabled, 1 = enabled)
          * @hide
          */
         public static final String AMBIENT_AOD = "ambient_aod";
+
+        /**
+         * Whether to show low battery warning and shutdown dialogs.
+         * @hide
+         */
+        public static final String LOW_BATTERY_DIALOGS_ENABLED = "low_battery_dialogs_enabled";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to
