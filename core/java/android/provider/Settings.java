@@ -14394,6 +14394,11 @@ public final class Settings {
         public static final String PULSE_HEIGHT_MULTIPLIER = "pulse_height_multiplier";
 
         /**
+         * @hide
+         */
+        public static final String PULSE_CUSTOM_COLOR = "pulse_custom_color";
+
+        /**
          * Translucent notifications
          * @hide
          */

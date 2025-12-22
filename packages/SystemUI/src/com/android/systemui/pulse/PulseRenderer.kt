@@ -103,6 +103,7 @@ class PulseRenderer(
         val mode = settingsRepo.getColorMode()
         val color = when (mode) {
             "album" -> mediaColor
+            "custom" -> settingsRepo.getCustomColor()
             "lavalamp" -> {
                 val time = System.currentTimeMillis()
                 val hue = (time / 50) % 360
