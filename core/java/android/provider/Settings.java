@@ -7240,6 +7240,12 @@ public final class Settings {
         public static final String QS_MEDIA_ART_SCRIM_ENABLED = "qs_media_art_scrim_enabled";
 
         /**
+         * Dim amount for media artwork scrim
+         * @hide
+         */
+        public static final String QS_MEDIA_ART_DIM_AMOUNT = "qs_media_art_dim_amount";
+
+        /**
         * Lock Glymps - Dynamic lock screen wallpaper feature
         * @hide
         */

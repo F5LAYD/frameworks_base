@@ -20,6 +20,10 @@ import android.content.Context;
 import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.RenderEffect;
@@ -44,6 +48,7 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     private static final float MIN_QS_EXPANSION_FOR_MEDIA_ART = 0.15f;
     private static final float MIN_QS_EXPANSION_FOR_REMOVAL = 0.05f;
     private static final int MAX_BITMAP_SIZE = 400;
+    private static final int DEFAULT_DIM_AMOUNT = 10;
     
     private final Context mContext;
     private final ContentResolver mContentResolver;
@@ -54,6 +59,7 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     private ScrimView mScrimBehind;
     
     private boolean mMediaArtScrimEnabled = false;
+    private int mMediaArtDimAmount = DEFAULT_DIM_AMOUNT;
     private Drawable mCurrentMediaArtwork;
     private boolean mHasActiveMedia = false;
     private RenderEffect mBlurEffect;
@@ -77,7 +83,7 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
             new Handler(Looper.getMainLooper())) {
         @Override
         public void onChange(boolean selfChange) {
-            updateMediaArtScrimEnabled();
+            updateSettings();
         }
     };
     
@@ -98,7 +104,14 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
                 UserHandle.USER_ALL
         );
         
-        updateMediaArtScrimEnabled();
+        mContentResolver.registerContentObserver(
+                Settings.System.getUriFor(Settings.System.QS_MEDIA_ART_DIM_AMOUNT),
+                false,
+                mSettingsObserver,
+                UserHandle.USER_ALL
+        );
+        
+        updateSettings();
     }
     
     public void attachViews(ScrimView notificationsScrim, ScrimView scrimBehind) {
@@ -117,7 +130,7 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         }
     }
     
-    private void updateMediaArtScrimEnabled() {
+    private void updateSettings() {
         boolean enabled = Settings.System.getIntForUser(
                 mContentResolver,
                 Settings.System.QS_MEDIA_ART_SCRIM_ENABLED,
@@ -125,9 +138,20 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
                 UserHandle.USER_CURRENT
         ) == 1;
         
-        if (mMediaArtScrimEnabled != enabled) {
-            mMediaArtScrimEnabled = enabled;
-            
+        int dimAmount = Settings.System.getIntForUser(
+                mContentResolver,
+                Settings.System.QS_MEDIA_ART_DIM_AMOUNT,
+                DEFAULT_DIM_AMOUNT,
+                UserHandle.USER_CURRENT
+        );
+        
+        boolean enabledChanged = mMediaArtScrimEnabled != enabled;
+        boolean dimChanged = mMediaArtDimAmount != dimAmount;
+        
+        mMediaArtScrimEnabled = enabled;
+        mMediaArtDimAmount = dimAmount;
+        
+        if (enabledChanged) {
             if (enabled && !mListening) {
                 mMediaSessionManager.addListener(this);
                 ScrimUtils.get().addListener(this);
@@ -140,7 +164,14 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
             }
             
             scheduleStateUpdate();
+        } else if (dimChanged && mIsApplied) {
+            mIsApplied = false;
+            scheduleStateUpdate();
         }
+    }
+    
+    private void updateMediaArtScrimEnabled() {
+        updateSettings();
     }
     
     private boolean shouldShowMediaArt() {
@@ -300,9 +331,9 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
             
             cleanupBitmap();
             
-            mCurrentBitmap = bitmap;
+            mCurrentBitmap = applyDimToBitmap(bitmap);
             BitmapDrawable blurredDrawable = new BitmapDrawable(
-                    mContext.getResources(), bitmap);
+                    mContext.getResources(), mCurrentBitmap);
             
             mNotificationsScrim.setMediaArtApplied(true);
             
@@ -314,9 +345,31 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
             mIsApplied = true;
             mLastAppliedExpansion = mQsExpansion;
             
-            Log.d(TAG, "Applied media art to notifications scrim");
+            Log.d(TAG, "Applied media art to notifications scrim with dim amount: " + mMediaArtDimAmount);
         } else {
             Log.e(TAG, "Failed to create bitmap from artwork");
+        }
+    }
+    
+    private Bitmap applyDimToBitmap(Bitmap source) {
+        if (source == null || mMediaArtDimAmount <= 0) {
+            return source;
+        }
+        
+        try {
+            Bitmap dimmedBitmap = source.copy(Bitmap.Config.ARGB_8888, true);
+            Canvas canvas = new Canvas(dimmedBitmap);
+            
+            float dimFactor = mMediaArtDimAmount / 100f;
+            int overlayAlpha = (int) (dimFactor * 200);
+            
+            canvas.drawColor(Color.argb(overlayAlpha, 0, 0, 0));
+            
+            Log.d(TAG, "Applied dim factor: " + dimFactor + " (alpha: " + overlayAlpha + ")");
+            return dimmedBitmap;
+        } catch (Exception e) {
+            Log.e(TAG, "Error applying dim to bitmap", e);
+            return source;
         }
     }
     
@@ -536,6 +589,10 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     
     public boolean isMediaArtApplied() {
         return mIsApplied;
+    }
+    
+    public int getDimAmount() {
+        return mMediaArtDimAmount;
     }
     
     public void destroy() {
