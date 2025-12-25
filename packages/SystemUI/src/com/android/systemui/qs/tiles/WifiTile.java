@@ -26,6 +26,7 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.service.quicksettings.Tile;
 import android.text.TextUtils;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.widget.Switch;
 
@@ -33,6 +34,7 @@ import androidx.annotation.Nullable;
 
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
+import com.android.settingslib.net.DataUsageController;
 import com.android.systemui.animation.Expandable;
 import com.android.systemui.dagger.qualifiers.Background;
 import com.android.systemui.dagger.qualifiers.Main;
@@ -66,6 +68,7 @@ public class WifiTile extends SecureQSTile<BooleanState> {
 
     protected final NetworkController mController;
     private final AccessPointController mWifiController;
+    private final DataUsageController mDataController;
     private final QSTile.BooleanState mStateBeforeClick = newTileState();
 
     protected final WifiSignalCallback mSignalCallback = new WifiSignalCallback();
@@ -90,6 +93,7 @@ public class WifiTile extends SecureQSTile<BooleanState> {
                 statusBarStateController, activityStarter, qsLogger, keyguardStateController);
         mController = networkController;
         mWifiController = accessPointController;
+        mDataController = new DataUsageController(mContext);
         mController.observe(getLifecycle(), mSignalCallback);
         mStateBeforeClick.spec = "wifi";
     }
@@ -160,30 +164,40 @@ public class WifiTile extends SecureQSTile<BooleanState> {
         boolean wifiNotConnected = (cb.ssid == null)
                 && (cb.wifiSignalIconId == WifiIcons.QS_WIFI_NO_NETWORK);
         boolean isTransient = transientEnabling || cb.isTransient;
-        state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
         state.state = Tile.STATE_ACTIVE;
         state.dualTarget = true;
         state.value = transientEnabling || cb.enabled;
         final StringBuffer minimalContentDescription = new StringBuffer();
         final StringBuffer minimalStateDescription = new StringBuffer();
         final Resources r = mContext.getResources();
+        
         if (isTransient) {
             state.icon = ResourceIcon.get(
                     com.android.internal.R.drawable.ic_signal_wifi_transient_animation);
             state.label = r.getString(R.string.quick_settings_wifi_label);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
         } else if (!state.value) {
             state.state = Tile.STATE_INACTIVE;
             state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_DISABLED);
             state.label = r.getString(R.string.quick_settings_wifi_label);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
         } else if (wifiConnected) {
             state.icon = ResourceIcon.get(cb.wifiSignalIconId);
             state.label = cb.ssid != null ? removeDoubleQuotes(cb.ssid) : getTileLabel();
+            String dataUsage = getFormattedWifiDataUsage();
+            if (!TextUtils.isEmpty(dataUsage)) {
+                state.secondaryLabel = dataUsage;
+            } else {
+                state.secondaryLabel = cb.statusLabel;
+            }
         } else if (wifiNotConnected) {
             state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_NO_NETWORK);
             state.label = r.getString(R.string.quick_settings_wifi_label);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
         } else {
             state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_NO_NETWORK);
             state.label = r.getString(R.string.quick_settings_wifi_label);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
         }
         minimalContentDescription.append(
                 mContext.getString(R.string.quick_settings_wifi_label)).append(",");
@@ -201,6 +215,23 @@ public class WifiTile extends SecureQSTile<BooleanState> {
         state.dualLabelContentDescription = r.getString(
                 R.string.accessibility_quick_settings_open_settings, getTileLabel());
         state.expandedAccessibilityClassName = Switch.class.getName();
+    }
+
+    private String getFormattedWifiDataUsage() {
+        try {
+            DataUsageController.DataUsageInfo info = mDataController.getWifiDailyDataUsageInfo(true);
+            if (info == null) {
+                info = mDataController.getWifiDailyDataUsageInfo(false);
+            }
+            if (info != null && info.usageLevel >= 0) {
+                String formattedSize = Formatter.formatFileSize(mContext, info.usageLevel, 
+                        Formatter.FLAG_IEC_UNITS);
+                return formattedSize + " " + mContext.getString(R.string.usage_data);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to get WiFi data usage", e);
+        }
+        return "";
     }
 
     private CharSequence getSecondaryLabel(boolean isTransient, String statusLabel) {

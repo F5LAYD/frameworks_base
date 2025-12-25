@@ -32,6 +32,7 @@ import android.service.quicksettings.Tile;
 import android.telephony.SubscriptionManager;
 import android.text.Html;
 import android.text.TextUtils;
+import android.text.format.Formatter;
 import android.view.WindowManager.LayoutParams;
 import android.widget.Switch;
 
@@ -113,7 +114,7 @@ public class CellularTile extends SecureQSTile<BooleanState> {
 
     @Override
     protected void handleClick(@Nullable Expandable expandable, boolean keyguardShowing) {
-	if (checkKeyguard(expandable, keyguardShowing)) {
+        if (checkKeyguard(expandable, keyguardShowing)) {
             return;
         }
         if (getState().state == Tile.STATE_UNAVAILABLE) {
@@ -173,7 +174,6 @@ public class CellularTile extends SecureQSTile<BooleanState> {
         }
 
         final Resources r = mContext.getResources();
-        state.label = r.getString(R.string.mobile_data);
         boolean mobileDataEnabled = mDataController.isMobileDataSupported()
                 && mDataController.isMobileDataEnabled();
         state.value = mobileDataEnabled;
@@ -186,18 +186,40 @@ public class CellularTile extends SecureQSTile<BooleanState> {
 
         if (cb.noSim) {
             state.state = Tile.STATE_UNAVAILABLE;
+            state.label = r.getString(R.string.mobile_data);
             state.secondaryLabel = r.getString(R.string.keyguard_missing_sim_message_short);
         } else if (cb.airplaneModeEnabled) {
             state.state = Tile.STATE_UNAVAILABLE;
+            state.label = r.getString(R.string.mobile_data);
             state.secondaryLabel = r.getString(R.string.status_bar_airplane);
         } else if (mobileDataEnabled) {
             state.state = Tile.STATE_ACTIVE;
-            state.secondaryLabel = appendMobileDataType(
-                    // Only show carrier name if there are more than 1 subscription
-                    cb.multipleSubs ? cb.dataSubscriptionName : "",
-                    getMobileDataContentName(cb));
+            CharSequence carrierName = getCarrierName(cb);
+            if (!TextUtils.isEmpty(carrierName)) {
+                state.label = carrierName;
+            } else {
+                state.label = r.getString(R.string.mobile_data);
+            }
+            CharSequence dataType = getMobileDataContentName(cb);
+            String dataUsage = getFormattedDataUsage();
+            StringBuilder secondaryLabel = new StringBuilder();
+            if (!TextUtils.isEmpty(dataType)) {
+                secondaryLabel.append(dataType);
+            }
+            if (!TextUtils.isEmpty(dataUsage)) {
+                if (secondaryLabel.length() > 0) {
+                    secondaryLabel.append(" · ");
+                }
+                secondaryLabel.append(dataUsage);
+            }
+            if (secondaryLabel.length() > 0) {
+                state.secondaryLabel = Html.fromHtml(secondaryLabel.toString(), 0);
+            } else {
+                state.secondaryLabel = "";
+            }
         } else {
             state.state = Tile.STATE_INACTIVE;
+            state.label = r.getString(R.string.mobile_data);
             state.secondaryLabel = r.getString(R.string.cell_data_off);
         }
 
@@ -208,6 +230,36 @@ public class CellularTile extends SecureQSTile<BooleanState> {
         } else {
             state.stateDescription = state.secondaryLabel;
         }
+    }
+
+    private CharSequence getCarrierName(CallbackInfo cb) {
+        if (cb.multipleSubs && !TextUtils.isEmpty(cb.dataSubscriptionName)) {
+            return cb.dataSubscriptionName;
+        }
+        CharSequence networkName = mController.getMobileDataNetworkName();
+        if (!TextUtils.isEmpty(networkName)) {
+            return networkName;
+        }
+        return "";
+    }
+
+    private String getFormattedDataUsage() {
+        try {
+            int dataSubId = SubscriptionManager.getDefaultDataSubscriptionId();
+            
+            if (SubscriptionManager.isValidSubscriptionId(dataSubId)) {
+                mDataController.setSubscriptionId(dataSubId);
+            }
+            
+            DataUsageController.DataUsageInfo info = mDataController.getDailyDataUsageInfo();
+            if (info != null && info.usageLevel >= 0) {
+                String formattedSize = Formatter.formatFileSize(mContext, info.usageLevel, 
+                        Formatter.FLAG_IEC_UNITS);
+                return formattedSize + " " + mContext.getString(R.string.usage_data);
+            }
+        } catch (Exception e) {
+        }
+        return "";
     }
 
     private CharSequence appendMobileDataType(CharSequence current, CharSequence dataType) {
