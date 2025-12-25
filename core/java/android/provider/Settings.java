@@ -7691,6 +7691,11 @@ public final class Settings {
         public static final String QS_TILE_VERTICAL_SPACING = "qs_tile_vertical_spacing";
 
         /**
+         * @hide
+         */
+        public static final String MEDIA_WAVEFORM_SEEKBAR = "media_waveform_seekbar";
+
+        /**
          * What to show at the bottom of the Ambient display
          * 0: Nothing.
          * 1: Battery Percentage.
