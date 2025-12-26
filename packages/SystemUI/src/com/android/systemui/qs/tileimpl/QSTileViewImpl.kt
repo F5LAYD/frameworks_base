@@ -140,7 +140,7 @@ constructor(
     private val colorLabelUnavailable = Utils.getColorAttrDefaultColor(context, R.attr.outline)
 
     private val colorSecondaryLabelActive =
-        Utils.getColorAttrDefaultColor(context, R.attr.onShadeActiveVariant)
+        Utils.getColorAttrDefaultColor(context, R.attr.onShadeActive)
     private val colorSecondaryLabelInactive =
         Utils.getColorAttrDefaultColor(context, R.attr.onShadeInactiveVariant)
     private val colorSecondaryLabelUnavailable =
