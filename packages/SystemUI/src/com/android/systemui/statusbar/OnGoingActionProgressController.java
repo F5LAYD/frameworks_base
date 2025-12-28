@@ -767,12 +767,19 @@ public class OnGoingActionProgressController implements NotificationListener.Not
         int oldAccentColor = mAccentColor;
         updateAccentColor();
         
-        if (oldAccentColor != mAccentColor) {
-            Log.d(TAG, "Accent color changed from configuration: " + 
-                  Integer.toHexString(oldAccentColor) + " -> " + Integer.toHexString(mAccentColor));
-            applySystemTheming();
-            mNeedsFullUiUpdate = true;
-            requestUiUpdate();
+        Log.d(TAG, "Configuration changed - applying theming: " + 
+            Integer.toHexString(oldAccentColor) + " -> " + Integer.toHexString(mAccentColor));
+        
+        reloadBackgrounds();
+        applySystemTheming();
+        mNeedsFullUiUpdate = true;
+        requestUiUpdate();
+    }
+
+    private void reloadBackgrounds() {
+        if (mProgressRootView != null) {
+            mProgressRootView.setBackground(null);
+            mProgressRootView.setBackgroundResource(R.drawable.action_chip_container_background);
         }
     }
 
