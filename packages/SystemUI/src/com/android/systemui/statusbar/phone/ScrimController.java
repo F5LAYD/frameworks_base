@@ -1292,7 +1292,10 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, Dump
 
             mScrimInFront.setColors(mColors, animateScrimInFront);
             mScrimBehind.setColors(mColors, animateBehindScrim);
-            mNotificationsScrim.setColors(mColors, animateScrimNotifications);
+            
+            if (!shouldSkipNotificationsScrimUpdate()) {
+                mNotificationsScrim.setColors(mColors, animateScrimNotifications);
+            }
 
             dispatchBackScrimState(mScrimBehind.getViewAlpha());
         }
@@ -1300,7 +1303,9 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, Dump
             // Blur the notification scrim as needed. The blur is needed only when we show the
             // expanded shade behind the bouncer. Without it, the notification scrim outline is
             // visible behind the bouncer.
-            mNotificationsScrim.setBlurRadius(mState.getNotifBlurRadius());
+            if (!shouldSkipNotificationsScrimUpdate()) {
+                mNotificationsScrim.setBlurRadius(mState.getNotifBlurRadius());
+            }
         }
 
         // We also want to hide FLAG_SHOW_WHEN_LOCKED activities under the scrim.
@@ -1367,8 +1372,14 @@ public class ScrimController implements ViewTreeObserver.OnPreDrawListener, Dump
     }
 
     private boolean shouldSkipNotificationsScrimUpdate() {
-        return mMediaArtScrimController != null && 
-            mMediaArtScrimController.isMediaArtApplied();
+        return mMediaArtScrimController != null 
+            && mMediaArtScrimController.isMediaArtApplied();
+    }
+
+    public void notifyBrightnessMirrorChanged(boolean showing) {
+        if (mMediaArtScrimController != null) {
+            mMediaArtScrimController.setBrightnessMirrorShowing(showing);
+        }
     }
 
     private void setScrimAlpha(ScrimView scrim, float alpha) {

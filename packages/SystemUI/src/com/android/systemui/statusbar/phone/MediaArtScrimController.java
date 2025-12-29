@@ -21,11 +21,9 @@ import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorFilter;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.TransitionDrawable;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
 import android.media.session.PlaybackState;
@@ -34,7 +32,6 @@ import android.os.Looper;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.View;
 
 import com.android.systemui.media.MediaSessionManager;
 import com.android.systemui.scrim.ScrimView;
@@ -49,6 +46,11 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     private static final float MIN_QS_EXPANSION_FOR_REMOVAL = 0.05f;
     private static final int MAX_BITMAP_SIZE = 400;
     private static final int DEFAULT_DIM_AMOUNT = 10;
+    
+    private static final long ARTWORK_UPDATE_DEBOUNCE_MS = 200L;
+    
+    private static final int CROSSFADE_DURATION_MS = 300;
+    private static final boolean ENABLE_CROSSFADE = true;
     
     private final Context mContext;
     private final ContentResolver mContentResolver;
@@ -75,9 +77,15 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     private float mQsExpansion = 0f;
     private float mLastAppliedExpansion = 0f;
     private Bitmap mCurrentBitmap = null;
+    private boolean mBrightnessMirrorShowing = false;
     
     private Runnable mPendingStateUpdate = null;
     private static final long STATE_UPDATE_DELAY_MS = 30;
+    
+    private Runnable mPendingArtworkUpdate = null;
+    private Drawable mPendingArtwork = null;
+    
+    private Drawable mLastAppliedArtwork = null;
 
     private final ContentObserver mSettingsObserver = new ContentObserver(
             new Handler(Looper.getMainLooper())) {
@@ -170,16 +178,13 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         }
     }
     
-    private void updateMediaArtScrimEnabled() {
-        updateSettings();
-    }
-    
     private boolean shouldShowMediaArt() {
         if (!mMediaArtScrimEnabled) return false;
         if (mCurrentMediaArtwork == null || !mHasActiveMedia) return false;
         if (mKeyguardShowing) return false;
         if (mBouncerShowing) return false;
         if (mKeyguardGoingAway) return false;
+        if (mBrightnessMirrorShowing) return true;
         if (mQsExpansion < MIN_QS_EXPANSION_FOR_MEDIA_ART) return false;
         return true;
     }
@@ -195,24 +200,59 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     
     @Override
     public void onAlbumArtChanged(Drawable drawable) {
-        mCurrentMediaArtwork = drawable;
-        if (mMediaArtScrimEnabled) {
-            if (mIsApplied) {
-                if (mPendingStateUpdate != null) {
-                    mHandler.removeCallbacks(mPendingStateUpdate);
-                }
-                
-                mPendingStateUpdate = () -> {
-                    mPendingStateUpdate = null;
-                    mIsApplied = false;
-                    updateScrimState();
-                };
-
-                mHandler.postDelayed(mPendingStateUpdate, 150);
-            } else {
-                scheduleStateUpdate();
-            }
+        if (mPendingArtworkUpdate != null) {
+            mHandler.removeCallbacks(mPendingArtworkUpdate);
+            mPendingArtworkUpdate = null;
         }
+        
+        mPendingArtwork = drawable;
+        
+        if (isSameArtwork(mPendingArtwork, mCurrentMediaArtwork)) {
+            return;
+        }
+        
+        mPendingArtworkUpdate = () -> {
+            mCurrentMediaArtwork = mPendingArtwork;
+            mPendingArtworkUpdate = null;
+            
+            if (mMediaArtScrimEnabled) {
+                if (mIsApplied) {
+                    if (mPendingStateUpdate != null) {
+                        mHandler.removeCallbacks(mPendingStateUpdate);
+                    }
+                    
+                    mPendingStateUpdate = () -> {
+                        mPendingStateUpdate = null;
+                        mIsApplied = false;
+                        updateScrimState();
+                    };
+                    
+                    mHandler.postDelayed(mPendingStateUpdate, 150);
+                } else {
+                    scheduleStateUpdate();
+                }
+            }
+        };
+        
+        mHandler.postDelayed(mPendingArtworkUpdate, ARTWORK_UPDATE_DEBOUNCE_MS);
+    }
+    
+    private boolean isSameArtwork(Drawable drawable1, Drawable drawable2) {
+        if (drawable1 == drawable2) return true;
+        if (drawable1 == null || drawable2 == null) return false;
+        
+        if (drawable1.getIntrinsicWidth() != drawable2.getIntrinsicWidth() ||
+            drawable1.getIntrinsicHeight() != drawable2.getIntrinsicHeight()) {
+            return false;
+        }
+        
+        if (drawable1 instanceof BitmapDrawable && drawable2 instanceof BitmapDrawable) {
+            Bitmap bitmap1 = ((BitmapDrawable) drawable1).getBitmap();
+            Bitmap bitmap2 = ((BitmapDrawable) drawable2).getBitmap();
+            return bitmap1 != null && bitmap1.sameAs(bitmap2);
+        }
+        
+        return false;
     }
     
     @Override
@@ -222,12 +262,18 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         
         if (!mHasActiveMedia) {
             mCurrentMediaArtwork = null;
+            mLastAppliedArtwork = null;
             if (mIsApplied) {
                 mHandler.post(() -> {
                     restoreRegularScrimImmediate();
                 });
             } else {
                 cleanupBitmap();
+            }
+            
+            if (mPendingArtworkUpdate != null) {
+                mHandler.removeCallbacks(mPendingArtworkUpdate);
+                mPendingArtworkUpdate = null;
             }
         }
         
@@ -244,6 +290,27 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     public void onMetadataChanged(String track, String artist) {
     }
     
+    public void setBrightnessMirrorShowing(boolean showing) {
+        Log.d(TAG, "setBrightnessMirrorShowing: " + showing + ", mIsApplied: " + mIsApplied);
+        
+        boolean wasShowing = mBrightnessMirrorShowing;
+        mBrightnessMirrorShowing = showing;
+        
+        if (showing && mIsApplied) {
+            if (mNotificationsScrim != null) {
+                mNotificationsScrim.setAlpha(0f);
+            }
+        } else if (!showing && wasShowing && mIsApplied) {
+            if (mNotificationsScrim != null) {
+                mNotificationsScrim.setRenderEffect(mBlurEffect);
+                mNotificationsScrim.setViewAlpha(mQsExpansion);
+                mNotificationsScrim.setAlpha(mQsExpansion);
+            }
+        } else if (!showing && !mIsApplied && canShowMediaArt()) {
+            scheduleStateUpdate();
+        }
+    }
+    
     public void onPanelExpansionChanged(float expansion) {
         if (!mMediaArtScrimEnabled || mNotificationsScrim == null) {
             return;
@@ -251,6 +318,10 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         
         float oldExpansion = mQsExpansion;
         mQsExpansion = expansion;
+        
+        if (mBrightnessMirrorShowing) {
+            return;
+        }
         
         if (!canShowMediaArt() && mIsApplied) {
             restoreRegularScrimImmediate();
@@ -306,20 +377,13 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
     
     private void applyMediaArt() {
         if (!shouldShowMediaArt()) {
-            Log.d(TAG, "Skipping media art application - conditions not met");
             if (mIsApplied) {
                 restoreRegularScrimImmediate();
             }
             return;
         }
         
-        if (mIsApplied) {
-            if (Math.abs(mLastAppliedExpansion - mQsExpansion) > 0.01f) {
-                mNotificationsScrim.setAlpha(mQsExpansion);
-                mLastAppliedExpansion = mQsExpansion;
-            }
-            return;
-        }
+        boolean isReapplying = mIsApplied;
         
         if (mOriginalTint == -1) {
             saveOriginalScrimState();
@@ -327,17 +391,24 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         
         Bitmap bitmap = drawableToBitmap(mCurrentMediaArtwork);
         if (bitmap != null) {
-            mNotificationsScrim.setBackground(null);
-            
             cleanupBitmap();
             
             mCurrentBitmap = applyDimToBitmap(bitmap);
-            BitmapDrawable blurredDrawable = new BitmapDrawable(
+            BitmapDrawable newDrawable = new BitmapDrawable(
                     mContext.getResources(), mCurrentBitmap);
             
-            mNotificationsScrim.setMediaArtApplied(true);
+            if (ENABLE_CROSSFADE && isReapplying 
+                    && mLastAppliedArtwork != null 
+                    && mNotificationsScrim.getBackground() != null
+                    && !mBrightnessMirrorShowing) {
+                applyCrossfadeTransition(newDrawable);
+            } else {
+                mNotificationsScrim.setBackground(newDrawable);
+            }
             
-            mNotificationsScrim.setBackground(blurredDrawable);
+            mLastAppliedArtwork = mCurrentMediaArtwork;
+            
+            mNotificationsScrim.setMediaArtApplied(true);
             mNotificationsScrim.setRenderEffect(mBlurEffect);
             mNotificationsScrim.setTint(android.graphics.Color.TRANSPARENT);
             mNotificationsScrim.setViewAlpha(mQsExpansion);
@@ -345,9 +416,47 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
             mIsApplied = true;
             mLastAppliedExpansion = mQsExpansion;
             
-            Log.d(TAG, "Applied media art to notifications scrim with dim amount: " + mMediaArtDimAmount);
+            Log.d(TAG, "Applied media art to notifications scrim with dim amount: " 
+                + mMediaArtDimAmount + (isReapplying && ENABLE_CROSSFADE ? " (with crossfade)" : ""));
         } else {
             Log.e(TAG, "Failed to create bitmap from artwork");
+        }
+    }
+    
+    private void applyCrossfadeTransition(Drawable newDrawable) {
+        try {
+            Drawable currentBackground = mNotificationsScrim.getBackground();
+            
+            if (currentBackground != null && currentBackground instanceof BitmapDrawable) {
+                BitmapDrawable oldDrawable = (BitmapDrawable) currentBackground;
+                Bitmap oldBitmap = oldDrawable.getBitmap();
+                
+                if (oldBitmap != null && !oldBitmap.isRecycled()) {
+                    Drawable[] layers = new Drawable[] {
+                        new BitmapDrawable(mContext.getResources(), oldBitmap),
+                        newDrawable
+                    };
+                    
+                    TransitionDrawable transition = new TransitionDrawable(layers);
+                    transition.setCrossFadeEnabled(true);
+                    
+                    mNotificationsScrim.setBackground(transition);
+                    
+                    transition.startTransition(CROSSFADE_DURATION_MS);
+                    
+                    Log.d(TAG, "Started crossfade transition (" + CROSSFADE_DURATION_MS + "ms)");
+                    return;
+                }
+            }
+            
+            mNotificationsScrim.setBackground(newDrawable);
+        } catch (Exception e) {
+            Log.e(TAG, "Error during crossfade transition, falling back to direct set", e);
+            try {
+                mNotificationsScrim.setBackground(newDrawable);
+            } catch (Exception ex) {
+                Log.e(TAG, "Critical error setting background", ex);
+            }
         }
     }
     
@@ -469,6 +578,10 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
             return;
         }
         
+        if (mBrightnessMirrorShowing) {
+            return;
+        }
+        
         if (mPendingStateUpdate != null) {
             mHandler.removeCallbacks(mPendingStateUpdate);
             mPendingStateUpdate = null;
@@ -476,9 +589,11 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         
         mNotificationsScrim.setBackground(null);
         mNotificationsScrim.setRenderEffect(null);
+        mNotificationsScrim.setMediaArtApplied(false);
         
         mIsApplied = false;
         mLastAppliedExpansion = 0f;
+        mLastAppliedArtwork = null;
         
         cleanupBitmap();
         
@@ -595,10 +710,19 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         return mMediaArtDimAmount;
     }
     
+    public boolean shouldSkipNotificationsScrimUpdate() {
+        return mIsApplied;
+    }
+    
     public void destroy() {
         if (mPendingStateUpdate != null) {
             mHandler.removeCallbacks(mPendingStateUpdate);
             mPendingStateUpdate = null;
+        }
+        
+        if (mPendingArtworkUpdate != null) {
+            mHandler.removeCallbacks(mPendingArtworkUpdate);
+            mPendingArtworkUpdate = null;
         }
         
         mContentResolver.unregisterContentObserver(mSettingsObserver);
@@ -610,6 +734,8 @@ public class MediaArtScrimController implements MediaSessionManager.MediaDataLis
         restoreRegularScrim();
         cleanupBitmap();
         mCurrentMediaArtwork = null;
+        mLastAppliedArtwork = null;
+        mPendingArtwork = null;
         mOriginalScrimBackground = null;
         mBlurEffect = null;
     }
