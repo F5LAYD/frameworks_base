@@ -270,10 +270,6 @@ class KeyguardController {
             scheduleGoingAwayTimeout(displayId);
         }
 
-        if (displayId == DEFAULT_DISPLAY && keyguardChanged) {
-            GameSpaceService.get().setKeyguardDoneLocked(!keyguardShowing);
-        }
-
         // Update the sleep token first such that ensureActivitiesVisible has correct sleep token
         // state when evaluating visibilities.
         updateKeyguardSleepToken();

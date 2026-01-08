@@ -169,22 +169,6 @@ public class GameSpaceService extends IGameSpaceService.Stub {
         });
     }
 
-    public void setKeyguardDoneLocked(boolean showing) {
-        mBgHandler.post(() -> {
-            boolean shouldStartOverlay = false;
-            boolean shouldStopOverlay = false;
-
-            if (showing && mCurrentGame != null) {
-                shouldStopOverlay = true;
-            } else if (!showing && mCurrentGame != null) {
-                shouldStartOverlay = true;
-            }
-
-            if (shouldStopOverlay) stopOverlay();
-            if (shouldStartOverlay) startOverlay();
-        });
-    }
-
     @Override
     public void registerCallback(IGameSpaceCallback callback) {
         if (callback != null && !mCallbacks.contains(callback)) {
