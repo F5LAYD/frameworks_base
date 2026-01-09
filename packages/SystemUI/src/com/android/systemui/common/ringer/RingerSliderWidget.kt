@@ -51,6 +51,8 @@ fun RingerSliderWidget(
     val availableModes = interactor.getAvailableRingerModes()
     val numModes = interactor.getNumberOfModes()
     val maxOffset = interactor.getMaxOffset()
+    
+    val isDndEnabled by interactor.isDndEnabled.collectAsState(initial = interactor.isDndActive())
 
     val targetPosition by interactor.targetPositionFlow.collectAsState(
         initial = interactor.getTargetPosition(interactor.getCurrentMode())
@@ -97,12 +99,15 @@ fun RingerSliderWidget(
     Box(
         modifier = modifier
             .height(dimens.thumbSize)
+            .graphicsLayer { alpha = if (isDndEnabled) 0.5f else 1f }
             .background(if (isDozing) Color.Transparent else theme.neutralBg, containerShape)
             .clip(containerShape)
             .then(if (isDozing)
                 Modifier.border(theme.dozeStroke, Color.White, containerShape)
             else border)
-            .pointerInput(availableModes, numModes) {
+            .pointerInput(availableModes, numModes, isDndEnabled) {
+                if (isDndEnabled) return@pointerInput
+                
                 detectTapGestures { tapOffset ->
                     val sectionWidth = size.width / numModes.toFloat()
                     val tappedIndex = (tapOffset.x / sectionWidth).toInt().coerceIn(0, numModes - 1)
@@ -112,7 +117,9 @@ fun RingerSliderWidget(
                     interactor.setRingerMode(newMode)
                 }
             }
-            .pointerInput(availableModes, maxOffset) {
+            .pointerInput(availableModes, maxOffset, isDndEnabled) {
+                if (isDndEnabled) return@pointerInput
+                
                 detectDragGestures(
                     onDragStart = { isDragging = true },
                     onDragEnd = {
