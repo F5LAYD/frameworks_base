@@ -81,6 +81,10 @@ public class DozeScreenState implements DozeMachine.Part {
      */
     public static final int UDFPS_DISPLAY_STATE_DELAY = 1200;
 
+    private static final int MIN_AOD_SCREEN_OFF_DURATION_SEC = 1;
+    private static final int DEFAULT_AOD_SCREEN_OFF_DURATION_SEC = 2;
+    private static final int MAX_AOD_SCREEN_OFF_DURATION_SEC = 30;
+
     private final DozeMachine.Service mDozeService;
     private final Handler mHandler;
     private final Runnable mApplyPendingScreenState = this::applyPendingScreenState;
@@ -147,6 +151,23 @@ public class DozeScreenState implements DozeMachine.Part {
     @Override
     public void destroy() {
         mAuthController.removeCallback(mAuthControllerCallback);
+    }
+
+    private boolean isAodScreenOffEnabled() {
+        return mSystemSettings.getIntForUser(
+                "screen_off_aod_enabled", 
+                0, 
+                android.os.UserHandle.USER_CURRENT) == 1;
+    }
+
+    private int getAodScreenOffDurationSeconds() {
+        int durationSec = mSystemSettings.getIntForUser(
+                "screen_off_aod_duration", 
+                DEFAULT_AOD_SCREEN_OFF_DURATION_SEC, 
+                android.os.UserHandle.USER_CURRENT);
+
+        return Math.max(MIN_AOD_SCREEN_OFF_DURATION_SEC, 
+                Math.min(durationSec, MAX_AOD_SCREEN_OFF_DURATION_SEC));
     }
 
     @Override
@@ -238,11 +259,14 @@ public class DozeScreenState implements DozeMachine.Part {
                     applyScreenState(Display.STATE_ON);
                     mPendingScreenState = screenState;
                 }
-                boolean showAodOnScreenOff = mSystemSettings.getIntForUser(
-                        "screen_off_aod_enabled", 0, android.os.UserHandle.USER_CURRENT) == 1;
-                boolean isUdfps = mAuthController.isUdfpsEnrolled(
-                    mSelectedUserInteractor.getSelectedUserId());
-                long delay = showAodOnScreenOff ? ENTER_DOZE_DELAY : ENTER_SCREEN_OFF_WITH_ANIMATION_DELAY_NO_UDFPS;
+                boolean showAodOnScreenOff = isAodScreenOffEnabled();
+                long delay;
+                if (showAodOnScreenOff) {
+                    int aodDurationSec = getAodScreenOffDurationSeconds();
+                    delay = aodDurationSec * 1000L;
+                } else {
+                    delay = ENTER_SCREEN_OFF_WITH_ANIMATION_DELAY_NO_UDFPS;
+                }
                 mHandler.postDelayed(mApplyPendingScreenState, delay);
             } else if (mIsLandscapeScreenOff) {
                 mDozeService.setDozeScreenState(Display.STATE_OFF);
