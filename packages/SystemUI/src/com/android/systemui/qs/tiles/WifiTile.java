@@ -21,8 +21,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.database.ContentObserver;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.service.quicksettings.Tile;
 import android.text.TextUtils;
@@ -73,6 +76,9 @@ public class WifiTile extends SecureQSTile<BooleanState> {
 
     protected final WifiSignalCallback mSignalCallback = new WifiSignalCallback();
     private boolean mExpectDisabled;
+    
+    private boolean mShowDataUsage;
+    private final SettingsObserver mSettingsObserver;
 
     @Inject
     public WifiTile(
@@ -96,6 +102,27 @@ public class WifiTile extends SecureQSTile<BooleanState> {
         mDataController = new DataUsageController(mContext);
         mController.observe(getLifecycle(), mSignalCallback);
         mStateBeforeClick.spec = "wifi";
+        
+        mSettingsObserver = new SettingsObserver(mHandler);
+        updateDataUsageSetting();
+    }
+
+    @Override
+    public void handleSetListening(boolean listening) {
+        super.handleSetListening(listening);
+        if (listening) {
+            mSettingsObserver.observe();
+        } else {
+            mSettingsObserver.unobserve();
+        }
+    }
+
+    private void updateDataUsageSetting() {
+        mShowDataUsage = Settings.Secure.getIntForUser(
+                mContext.getContentResolver(),
+                Settings.Secure.QS_SHOW_DATA_USAGE_TILE,
+                1,
+                UserHandle.USER_CURRENT) == 1;
     }
 
     @Override
@@ -175,29 +202,25 @@ public class WifiTile extends SecureQSTile<BooleanState> {
             state.icon = ResourceIcon.get(
                     com.android.internal.R.drawable.ic_signal_wifi_transient_animation);
             state.label = r.getString(R.string.quick_settings_wifi_label);
-            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel, null);
         } else if (!state.value) {
             state.state = Tile.STATE_INACTIVE;
             state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_DISABLED);
             state.label = r.getString(R.string.quick_settings_wifi_label);
-            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel, null);
         } else if (wifiConnected) {
             state.icon = ResourceIcon.get(cb.wifiSignalIconId);
             state.label = cb.ssid != null ? removeDoubleQuotes(cb.ssid) : getTileLabel();
-            String dataUsage = getFormattedWifiDataUsage();
-            if (!TextUtils.isEmpty(dataUsage)) {
-                state.secondaryLabel = dataUsage;
-            } else {
-                state.secondaryLabel = cb.statusLabel;
-            }
+            String dataUsage = mShowDataUsage ? getFormattedWifiDataUsage() : "";
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel, dataUsage);
         } else if (wifiNotConnected) {
             state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_NO_NETWORK);
             state.label = r.getString(R.string.quick_settings_wifi_label);
-            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel, null);
         } else {
             state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_NO_NETWORK);
             state.label = r.getString(R.string.quick_settings_wifi_label);
-            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel);
+            state.secondaryLabel = getSecondaryLabel(isTransient, cb.statusLabel, null);
         }
         minimalContentDescription.append(
                 mContext.getString(R.string.quick_settings_wifi_label)).append(",");
@@ -234,10 +257,16 @@ public class WifiTile extends SecureQSTile<BooleanState> {
         return "";
     }
 
-    private CharSequence getSecondaryLabel(boolean isTransient, String statusLabel) {
-        return isTransient
-                ? mContext.getString(R.string.quick_settings_wifi_secondary_label_transient)
-                : statusLabel;
+    private CharSequence getSecondaryLabel(boolean isTransient, String statusLabel, String dataUsage) {
+        if (isTransient) {
+            return mContext.getString(R.string.quick_settings_wifi_secondary_label_transient);
+        }
+        
+        if (!TextUtils.isEmpty(dataUsage)) {
+            return dataUsage;
+        }
+        
+        return statusLabel;
     }
 
     @Override
@@ -301,6 +330,28 @@ public class WifiTile extends SecureQSTile<BooleanState> {
             mInfo.wifiSignalContentDescription = indicators.qsIcon.contentDescription;
             mInfo.isTransient = indicators.isTransient;
             mInfo.statusLabel = indicators.statusLabel;
+            refreshState();
+        }
+    }
+
+    private class SettingsObserver extends ContentObserver {
+        SettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.Secure.getUriFor(Settings.Secure.QS_SHOW_DATA_USAGE_TILE),
+                    false, this, UserHandle.USER_ALL);
+        }
+
+        void unobserve() {
+            mContext.getContentResolver().unregisterContentObserver(this);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            updateDataUsageSetting();
             refreshState();
         }
     }

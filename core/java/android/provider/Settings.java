@@ -14884,6 +14884,13 @@ public final class Settings {
         public static final String QS_DATA_USAGE_CYCLE_TYPE = "qs_data_usage_cycle_type";
 
         /**
+         * Whether to show data usage in Quick Settings tiles (WiFi and Cellular)
+         * 0 = disabled, 1 = enabled
+         * @hide
+         */
+        public static final String QS_SHOW_DATA_USAGE_TILE = "qs_show_data_usage_tile";
+
+        /**
          * These entries are considered common between the personal and the managed profile,
          * since the managed profile doesn't get to change them.
          */

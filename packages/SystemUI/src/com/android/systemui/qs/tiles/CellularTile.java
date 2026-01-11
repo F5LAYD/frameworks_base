@@ -24,6 +24,8 @@ import android.app.AlertDialog.Builder;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.database.ContentObserver;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.UserHandle;
@@ -75,6 +77,9 @@ public class CellularTile extends SecureQSTile<BooleanState> {
     private final DataUsageController mDataController;
     private final KeyguardStateController mKeyguard;
     private final CellSignalCallback mSignalCallback = new CellSignalCallback();
+    
+    private boolean mShowDataUsage;
+    private final SettingsObserver mSettingsObserver;
 
     @Inject
     public CellularTile(
@@ -97,6 +102,27 @@ public class CellularTile extends SecureQSTile<BooleanState> {
         mKeyguard = keyguardStateController;
         mDataController = mController.getMobileDataController();
         mController.observe(getLifecycle(), mSignalCallback);
+        
+        mSettingsObserver = new SettingsObserver(mHandler);
+        updateDataUsageSetting();
+    }
+
+    @Override
+    public void handleSetListening(boolean listening) {
+        super.handleSetListening(listening);
+        if (listening) {
+            mSettingsObserver.observe();
+        } else {
+            mSettingsObserver.unobserve();
+        }
+    }
+
+    private void updateDataUsageSetting() {
+        mShowDataUsage = Settings.Secure.getIntForUser(
+                mContext.getContentResolver(),
+                Settings.Secure.QS_SHOW_DATA_USAGE_TILE,
+                1,
+                UserHandle.USER_CURRENT) == 1;
     }
 
     @Override
@@ -201,8 +227,9 @@ public class CellularTile extends SecureQSTile<BooleanState> {
                 state.label = r.getString(R.string.mobile_data);
             }
             CharSequence dataType = getMobileDataContentName(cb);
-            String dataUsage = getFormattedDataUsage();
+            String dataUsage = mShowDataUsage ? getFormattedDataUsage() : "";
             StringBuilder secondaryLabel = new StringBuilder();
+            
             if (!TextUtils.isEmpty(dataType)) {
                 secondaryLabel.append(dataType);
             }
@@ -212,6 +239,7 @@ public class CellularTile extends SecureQSTile<BooleanState> {
                 }
                 secondaryLabel.append(dataUsage);
             }
+            
             if (secondaryLabel.length() > 0) {
                 state.secondaryLabel = Html.fromHtml(secondaryLabel.toString(), 0);
             } else {
@@ -334,6 +362,28 @@ public class CellularTile extends SecureQSTile<BooleanState> {
         public void setIsAirplaneMode(@NonNull IconState icon) {
             mInfo.airplaneModeEnabled = icon.visible;
             refreshState(mInfo);
+        }
+    }
+
+    private class SettingsObserver extends ContentObserver {
+        SettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.Secure.getUriFor(Settings.Secure.QS_SHOW_DATA_USAGE_TILE),
+                    false, this, UserHandle.USER_ALL);
+        }
+
+        void unobserve() {
+            mContext.getContentResolver().unregisterContentObserver(this);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            updateDataUsageSetting();
+            refreshState();
         }
     }
 
