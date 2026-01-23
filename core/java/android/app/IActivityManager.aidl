@@ -1056,6 +1056,10 @@ interface IActivityManager {
     
     void boostThread(int tid);
     
+    void launcherItemsLoadingBoost(long duration);
+    
+    void systemThreadBoost(int tid, long duration);
+
     void releaseMemory(int minAdj, int maxKillCount, boolean includeUIProcesses, boolean skipCamera);
     
     boolean shouldForceLongScreen(in String packageName);
