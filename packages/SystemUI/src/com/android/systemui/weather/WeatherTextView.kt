@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-2024 risingOS Android Project
+ * Copyright (C) 2025 the AxionAOSP Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,16 @@ import android.view.View
 import android.widget.TextView
 import com.android.systemui.res.R
 
+/**
+ * A self-contained TextView that displays weather temperature and condition info
+ * by delegating all logic to [WeatherViewController].
+ *
+ * The controller requires both an ImageView and a TextView target, plus a
+ * container View whose visibility it manages. When this view is used standalone
+ * (i.e. without a sibling WeatherImageView), we pass `this` as both the TextView
+ * AND as the container so the controller can show/hide us correctly.
+ * The ImageView slot is left as a no-op stub because this view only renders text.
+ */
 class WeatherTextView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -28,31 +38,27 @@ class WeatherTextView @JvmOverloads constructor(
 ) : TextView(context, attrs, defStyle) {
 
     private val mWeatherViewController: WeatherViewController
-    private val mWeatherText: String?
 
     init {
-        val a = context.obtainStyledAttributes(attrs, R.styleable.WeatherTextView, defStyle, 0)
-        mWeatherText = a.getString(R.styleable.WeatherTextView_weatherText)
-        a.recycle()
-
-        mWeatherViewController = WeatherViewController(context, null, this, mWeatherText)
-
-        text = if (!mWeatherText.isNullOrEmpty()) mWeatherText else ""
         visibility = View.GONE
-    }
 
-    fun setWeatherEnabled(enabled: Boolean) {
-        visibility = if (enabled) View.VISIBLE else View.GONE
+        val stubIcon = android.widget.ImageView(context)
+
+        mWeatherViewController = WeatherViewController(
+            context = context,
+            weatherIcon = stubIcon,
+            weatherTemp = this,
+            weatherInfoView = this,
+        )
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        mWeatherViewController.updateWeatherSettings()
+        mWeatherViewController.init()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        mWeatherViewController.disableUpdates()
         mWeatherViewController.removeObserver()
     }
 }
