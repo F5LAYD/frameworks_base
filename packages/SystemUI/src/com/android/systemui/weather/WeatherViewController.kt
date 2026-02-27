@@ -120,6 +120,9 @@ class WeatherViewController(
             if (weatherTemp.id == R.id.default_weather_text) {
                 scope.launch { updateViewVisibility(weatherTemp, !settings.clockFaceEnabled) }
             }
+            if (weatherInfoView.id == R.id.keyguard_weather_area) {
+                scope.launch { updateViewVisibility(weatherInfoView, !settings.clockFaceEnabled) }
+            }
         }
     }
 
