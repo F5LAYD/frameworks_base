@@ -21,7 +21,7 @@ import android.view.ViewGroup
 import androidx.constraintlayout.widget.Barrier
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import com.android.systemui.customization.R as custR
+import com.android.systemui.customization.clocks.R as custR
 import com.android.systemui.keyguard.shared.model.KeyguardSection
 import com.android.systemui.res.R
 import com.android.systemui.weather.WeatherImageView
@@ -71,7 +71,7 @@ class KeyguardWeatherViewSection @Inject constructor(
                 ConstraintLayout.LayoutParams.WRAP_CONTENT
             )
             setTextColor(context.getColor(android.R.color.white))
-            textSize = 20f
+            textSize = 17f
             visibility = View.GONE
         }
 
