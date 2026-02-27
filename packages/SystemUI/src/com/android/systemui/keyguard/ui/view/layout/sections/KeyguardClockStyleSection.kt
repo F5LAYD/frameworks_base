@@ -17,6 +17,7 @@ package com.android.systemui.keyguard.ui.view.layout.sections
 
 import android.content.Context
 import android.os.UserHandle
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.constraintlayout.widget.Barrier
@@ -37,13 +38,19 @@ constructor(
     
     private var clockStyleView: ClockStyle? = null
     private var isCustomClockEnabled: Boolean = false
+
+    private val TAG = "KeyguardClockStyleSection"
     
     override fun addViews(constraintLayout: ConstraintLayout) {
-        
-        val clockStyle = secureSettings.getIntForUser(
-            ClockStyle.CLOCK_STYLE_KEY, 0, UserHandle.USER_CURRENT
-        )
-        isCustomClockEnabled = clockStyle != 0
+        isCustomClockEnabled = try {
+            val clockStyle = secureSettings.getIntForUser(
+                ClockStyle.CLOCK_STYLE_KEY, 0, UserHandle.USER_CURRENT
+            )
+            clockStyle != 0
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to read clock style setting, defaulting to disabled", e)
+            false
+        }
         
         if (!isCustomClockEnabled) return
         
@@ -73,7 +80,16 @@ constructor(
     }
     
     override fun applyConstraints(constraintSet: ConstraintSet) {
-        if (!isCustomClockEnabled) return
+        val currentlyEnabled = try {
+            secureSettings.getIntForUser(
+                ClockStyle.CLOCK_STYLE_KEY, 0, UserHandle.USER_CURRENT
+            ) != 0
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to read clock style setting in applyConstraints", e)
+            isCustomClockEnabled
+        }
+
+        if (!currentlyEnabled) return
         
         constraintSet.apply {
             // Clock positioning - TOP of hierarchy

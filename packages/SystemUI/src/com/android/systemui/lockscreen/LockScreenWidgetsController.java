@@ -33,6 +33,7 @@ import android.media.MediaMetadata;
 import android.media.session.MediaSessionLegacyHelper;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -198,7 +199,7 @@ public class LockScreenWidgetsController implements OmniJawsClient.OmniJawsObser
     };
 
     private final View mView;
-    private final Handler mHandler = new Handler();
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     public LockScreenWidgetsController(View view) {
         mView = view;
@@ -218,22 +219,23 @@ public class LockScreenWidgetsController implements OmniJawsClient.OmniJawsObser
         mActivityLauncherUtils = new ActivityLauncherUtils(mContext);
 
         mLockscreenWidgetsObserver = new LockscreenWidgetsObserver();
-        mLockscreenWidgetsObserver.observe();
 
         mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         mCameraManager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
         
         initResources();
 
-        // FIX 1: OmniJawsClient no longer takes Context in constructor; use get()
         if (mWeatherClient == null) {
             mWeatherClient = OmniJawsClient.get();
         }
 
         try {
-            mCameraId = mCameraManager.getCameraIdList()[0];
+            String[] cameraIds = mCameraManager.getCameraIdList();
+            if (cameraIds != null && cameraIds.length > 0) {
+                mCameraId = cameraIds[0];
+            }
         } catch (Exception e) {}
-        
+
         IntentFilter ringerFilter = new IntentFilter(AudioManager.INTERNAL_RINGER_MODE_CHANGED_ACTION);
         mContext.registerReceiver(mRingerModeReceiver, ringerFilter);
     }
@@ -302,6 +304,7 @@ public class LockScreenWidgetsController implements OmniJawsClient.OmniJawsObser
         mStatusBarStateController.addCallback(mStatusBarStateListener);
         mStatusBarStateListener.onDozingChanged(mStatusBarStateController.isDozing());
         mMediaSessionManagerHelper.addMediaMetadataListener(this);
+        mLockscreenWidgetsObserver.observe();
         updateWidgetViews();
         updateMediaPlaybackState();
     }
@@ -327,7 +330,10 @@ public class LockScreenWidgetsController implements OmniJawsClient.OmniJawsObser
         }
         mConfigurationController.removeCallback(mConfigurationListener);
         mStatusBarStateController.removeCallback(mStatusBarStateListener);
-        mContext.unregisterReceiver(mRingerModeReceiver);
+        try {
+            mContext.unregisterReceiver(mRingerModeReceiver);
+        } catch (IllegalArgumentException e) {
+        }
         mLockscreenWidgetsObserver.unobserve();
         mHandler.removeCallbacksAndMessages(null);
         mMediaSessionManagerHelper.removeMediaMetadataListener(this);
@@ -702,10 +708,11 @@ public class LockScreenWidgetsController implements OmniJawsClient.OmniJawsObser
     
     private void showMediaDialog(View view) {
         String lastMediaPkg = getLastUsedMedia();
-        if (TextUtils.isEmpty(lastMediaPkg)) return; // Return if null or empty
+        if (TextUtils.isEmpty(lastMediaPkg)) return;
+        if (!(mView instanceof LockScreenWidgets)) return;
         mHandler.post(() -> {
             ((LockScreenWidgets) mView).showMediaDialog(view, lastMediaPkg);
-            VibrationUtils.triggerVibration(mContext, 2); // Trigger vibration
+            VibrationUtils.triggerVibration(mContext, 2);
         });
     }
     
@@ -984,8 +991,6 @@ public class LockScreenWidgetsController implements OmniJawsClient.OmniJawsObser
 
     private void queryAndUpdateWeather() {
         try {
-            // FIX 4: isOmniJawsEnabled and queryWeather now require Context argument
-            // FIX 5: getWeatherConditionImage now requires Context as first argument
             if (mWeatherClient == null || !mWeatherClient.isOmniJawsEnabled(mContext)) return;
             mWeatherClient.queryWeather(mContext);
             mWeatherInfo = mWeatherClient.getWeatherInfo();
@@ -1050,7 +1055,7 @@ public class LockScreenWidgetsController implements OmniJawsClient.OmniJawsObser
     
     private class LockscreenWidgetsObserver extends ContentObserver {
         public LockscreenWidgetsObserver() {
-            super(null);
+            super(new Handler(Looper.getMainLooper()));
         }
         @Override
         public void onChange(boolean selfChange) {
