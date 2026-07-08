@@ -10,4 +10,15 @@
     <string name="usage_data_weekly">Использ. на этой неделе</string>
     <string name="usage_data_default_suffix">Моб. трафик</string>
     <string name="usage_wifi_default_suffix">Wi-Fi</string>
+    <!-- 4G icon instead LTE -->
+    <string name="fourg_icon_title">4G иконка</string>
+    <!-- Name of the roaming status bar icon. -->
+    <string name="status_bar_roaming">Индикатор роуминга</string>
+    <!-- Data disabled icon -->
+    <string name="data_disabled_icon_title">Иконка откл. данных</string>
+    <!-- Disable stacked mobile icons -->
+    <string name="disable_stacked_mobile_icons_title">Откл. иконку объединённых данных</string>
+    <!-- Kill button in notification guts -->
+    <string name="force_stop_dlg_title">Принуд. убить?</string>
+    <string name="force_stop_dlg_text">Если принуд. остановить приложение, оно может работать некорректно.</string>
 </resources>
