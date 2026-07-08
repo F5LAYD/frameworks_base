@@ -42,4 +42,21 @@
     <string name="quick_settings_compass_SW">ЮЗ</string>
     <string name="quick_settings_compass_W">З</string>
     <string name="quick_settings_compass_NW">СЗ</string>
+    <!-- Screenshot -->
+    <string name="quick_settings_screenshot_label">Скриншот</string>
+    <!-- Sleep Mode -->
+    <string name="quick_settings_sleep_mode_label">Спящий режим</string>
+    <!-- Wifi Standard. -->
+    <string name="status_bar_wifi_standard">Стандарт Wifi</string>
+    <!-- Autobrightness tile -->
+    <string name="quick_settings_autobrightness_label">Автояркость</string>
+    <!-- USB Mode Picker -->
+    <string name="usb_mode_picker_title">Выберите режим USB</string>
+    <string name="usb_mode_file_transfer">Передача файлов</string>
+    <string name="usb_mode_tethering">USB-модем</string>
+    <string name="usb_mode_midi">MIDI</string>
+    <string name="usb_mode_photo_transfer">Передача фото и видео</string>
+    <string name="usb_mode_webcam">USB-веб-камера</string>
+    <string name="usb_mode_charging_only">Только зарядка</string>
+    <string name="usb_charging_status">Зарядка по USB включена</string>
 </resources>
