@@ -23,7 +23,48 @@
     <string name="refresh_rate_tile_label">Частота обновления</string>
     <string name="refresh_rate_unknown">Неизвестно</string>
     <string name="auto_mode_label">Авто</string>
-     
+
+    <!-- Smartspace -->
+    <string name="accessibility_next_alarm">Следующий будильник: %s</string>
+    <string name="accessibility_smartspace_page">Страница %1$d из %2$d</string>
+    <string name="active_mode_content_description">%1$s включён</string>
+    <string name="generic_smartspace_concatenated_desc" translatable="false">%1$s, %2$s</string>
+    <string name="music_controls_no_title">Без названия</string>
+    <string name="smartspace_content_desc">Краткий обзор</string>
+    <string name="smartspace_flight_qr_code">QR-код</string>
+    <string name="smartspace_icu_date_pattern" translatable="false">EEEMMMd</string>
+    <string name="smartspace_role_desc">Просмотр</string>
+
+    <!-- Dash Charging -->
+    <string name="keyguard_indication_dash_charging_time"><xliff:g id="percentage">%2$s</xliff:g> • Dash зарядка (до полной зарядки: <xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g>)</string>
+    <string name="keyguard_plugged_in_dash_charging"><xliff:g id="percentage">%s</xliff:g> • Dash зарядка</string>
+
+    <!-- Warp Charging -->
+    <string name="keyguard_indication_warp_charging_time"><xliff:g id="percentage">%2$s</xliff:g> • Warp зарядка (до полной зарядки: <xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g>)</string>
+    <string name="keyguard_plugged_in_warp_charging"><xliff:g id="percentage">%s</xliff:g> • Warp зарядка</string>
+
+    <!-- VOOC Charging -->
+    <string name="keyguard_indication_vooc_charging_time"><xliff:g id="percentage">%2$s</xliff:g> • VOOC зарядка (до полной зарядки: <xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g>)</string>
+    <string name="keyguard_plugged_in_vooc_charging"><xliff:g id="percentage">%s</xliff:g> • VOOC зарядка</string>
+
+    <!-- Turbo Charging -->
+    <string name="keyguard_indication_turbo_power_time"><xliff:g id="percentage">%2$s</xliff:g> • Турбозарядка (до полной зарядки: <xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g>)</string>
+    <string name="keyguard_plugged_in_turbo_charging"><xliff:g id="percentage">%s</xliff:g> • Турбозарядка</string>
+
+    <!-- On The Go -->
+    <string name="onthego_notif_ticker">On-The-Go активирован</string>
+    <string name="onthego_notif_title">On-The-Go активен</string>
+    <string name="onthego_notif_stop">Остановить</string>
+    <string name="onthego_notif_options">Параметры</string>
+    <string name="onthego_notif_error">Не удалось запустить On-The-Go</string>
+    <string name="onthego_notif_restart">Перезапустить On-The-Go</string>
+    <string name="onthego_notif_camera_changed">Режим камеры изменён</string>
+    <string name="onthego_transparency">Прозрачность</string>
+    <string name="onthego_front_camera">Использовать фронтальную камеру</string>
+    <string name="onthego_service_toggle">Автоматически перезапускать службу</string>
+    <string name="onthego_channel_name">Основной</string>
+    <string name="global_action_onthego">On-The-Go</string>
+
     <!-- Label for notification action to delete a screen recording file -->
     <string name="screenrecord_delete_label">Удалить</string>
      
