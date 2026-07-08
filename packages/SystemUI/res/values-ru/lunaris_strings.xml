@@ -21,4 +21,9 @@
     <!-- Kill button in notification guts -->
     <string name="force_stop_dlg_title">Принуд. убить?</string>
     <string name="force_stop_dlg_text">Если принуд. убить приложение, оно может работать некорректно.</string>
+    <!-- Sound QS Tile -->
+    <string name="quick_settings_sound_label">Звук</string>
+    <string name="quick_settings_sound_ring">Звонок</string>
+    <string name="quick_settings_sound_vibrate">Вибрация</string>
+    <string name="quick_settings_sound_silent">Беззвучный</string>
 </resources>
