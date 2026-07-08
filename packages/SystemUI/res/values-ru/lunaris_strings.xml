@@ -42,6 +42,17 @@
     <string name="quick_settings_compass_SW">ЮЗ</string>
     <string name="quick_settings_compass_W">З</string>
     <string name="quick_settings_compass_NW">СЗ</string>
+    <!-- Volume panel QS tile -->
+    <string name="quick_settings_volume_panel_label">Панель громкости</string>
+    <!-- DataSwitch Tile -->
+    <string name="qs_data_switch_label">Сменить SIM для данных</string>
+    <!-- QuickSettings: InternetDialog: Summary for how many devices are connected to the hotspot -->
+    <plurals name="quick_settings_internet_hotspot_summary_num_devices">
+        <item quantity="one">Подключено %d устройство</item>
+        <item quantity="few">Подключено %d устройства</item>
+        <item quantity="many">Подключено %d устройств</item>
+        <item quantity="other">Подключено %d устройства</item>
+    </plurals>
     <!-- 5G toggle in Internet Dialog -->
     <string name="enable_fiveg">Включить 5G</string>
     <!-- Label for notification action to delete a screen recording file -->
