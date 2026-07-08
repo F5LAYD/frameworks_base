@@ -26,4 +26,20 @@
     <string name="quick_settings_sound_ring">Звонок</string>
     <string name="quick_settings_sound_vibrate">Вибрация</string>
     <string name="quick_settings_sound_silent">Беззвучный</string>
+    <!-- CPUInfo tile -->
+    <string name="quick_settings_cpuinfo_label">ЦП инфо.</string>
+    <!-- FPS Info tile -->
+    <string name="quick_settings_fpsinfo_label">FPS инфо.</string>
+    <!-- Compass QS Tile -->
+    <string name="quick_settings_compass_label">Компас</string>
+    <string name="quick_settings_compass_value"><xliff:g id="degrees">%1$.0f</xliff:g>° <xliff:g id="direction">%2$s</xliff:g></string>
+    <string name="quick_settings_compass_init">Запуск…</string>
+    <string name="quick_settings_compass_N">С</string>
+    <string name="quick_settings_compass_NE">СВ</string>
+    <string name="quick_settings_compass_E">В</string>
+    <string name="quick_settings_compass_SE">ЮВ</string>
+    <string name="quick_settings_compass_S">Ю</string>
+    <string name="quick_settings_compass_SW">ЮЗ</string>
+    <string name="quick_settings_compass_W">З</string>
+    <string name="quick_settings_compass_NW">СЗ</string>
 </resources>
