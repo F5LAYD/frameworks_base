@@ -4,32 +4,52 @@
      SPDX-License-Identifier: Apache-2.0
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-
+     
+    <!-- Statusbar Icons -->
+    <string name="status_bar_nfc">NFC</string>
+    <string name="status_bar_data_saver">Экономия трафика</string>
+    <string name="status_bar_call_strength">Уровень сигнала</string>
+     
     <!-- Data usage info in QS footer -->
     <string name="usage_data">Использ. сегодня</string>
     <string name="usage_data_weekly">Использ. на этой неделе</string>
     <string name="usage_data_default_suffix">Моб. трафик</string>
     <string name="usage_wifi_default_suffix">Wi-Fi</string>
+     
     <!-- 4G icon instead LTE -->
     <string name="fourg_icon_title">4G иконка</string>
+     
+    <!-- Label for notification action to delete a screen recording file -->
+    <string name="screenrecord_delete_label">Удалить</string>
+     
+    <!-- A toast message shown after successfully deleting a screen recording -->
+    <string name="screenrecord_delete_description">Запись экрана удалена</string>
+     
     <!-- Name of the roaming status bar icon. -->
     <string name="status_bar_roaming">Индикатор роуминга</string>
+     
     <!-- Data disabled icon -->
     <string name="data_disabled_icon_title">Иконка откл. данных</string>
+     
     <!-- Disable stacked mobile icons -->
     <string name="disable_stacked_mobile_icons_title">Откл. иконку объединённых данных</string>
+     
     <!-- Kill button in notification guts -->
     <string name="force_stop_dlg_title">Принуд. убить?</string>
     <string name="force_stop_dlg_text">Если принуд. убить приложение, оно может работать некорректно.</string>
+     
     <!-- Sound QS Tile -->
     <string name="quick_settings_sound_label">Звук</string>
     <string name="quick_settings_sound_ring">Звонок</string>
     <string name="quick_settings_sound_vibrate">Вибрация</string>
     <string name="quick_settings_sound_silent">Беззвучный</string>
+     
     <!-- CPUInfo tile -->
     <string name="quick_settings_cpuinfo_label">ЦП инфо.</string>
+     
     <!-- FPS Info tile -->
     <string name="quick_settings_fpsinfo_label">FPS инфо.</string>
+     
     <!-- Compass QS Tile -->
     <string name="quick_settings_compass_label">Компас</string>
     <string name="quick_settings_compass_value"><xliff:g id="degrees">%1$.0f</xliff:g>° <xliff:g id="direction">%2$s</xliff:g></string>
@@ -42,10 +62,22 @@
     <string name="quick_settings_compass_SW">ЮЗ</string>
     <string name="quick_settings_compass_W">З</string>
     <string name="quick_settings_compass_NW">СЗ</string>
+     
     <!-- Volume panel QS tile -->
     <string name="quick_settings_volume_panel_label">Панель громкости</string>
+     
+    <!-- Weather -->
+    <string name="weather_condition_clouds">Облачно</string>
+    <string name="weather_condition_rain">Дождь</string>
+    <string name="weather_condition_clear">Ясно</string>
+    <string name="weather_condition_storm">Гроза</string>
+    <string name="weather_condition_snow">Снег</string>
+    <string name="weather_condition_wind">Ветрено</string>
+    <string name="weather_condition_mist">Туман</string>
+     
     <!-- DataSwitch Tile -->
     <string name="qs_data_switch_label">Сменить SIM для данных</string>
+     
     <!-- QuickSettings: InternetDialog: Summary for how many devices are connected to the hotspot -->
     <plurals name="quick_settings_internet_hotspot_summary_num_devices">
         <item quantity="one">Подключено %d устройство</item>
@@ -53,28 +85,37 @@
         <item quantity="many">Подключено %d устройств</item>
         <item quantity="other">Подключено %d устройства</item>
     </plurals>
+     
     <!-- 5G toggle in Internet Dialog -->
     <string name="enable_fiveg">Включить 5G</string>
+     
     <!-- Label for notification action to delete a screen recording file -->
     <string name="screenrecord_delete_label">Удалить</string>
+     
     <!-- A toast message shown after successfully deleting a screen recording -->
     <string name="screenrecord_delete_description">Запись экрана удалена</string>
+     
     <!-- Screenshot -->
     <string name="quick_settings_screenshot_label">Скриншот</string>
+     
     <!-- Internet -->
     <string name="status_bar_settings_network_speed">Скорость интернета</string>
+     
     <!-- Smart Pixels -->
     <string name="quick_settings_smart_pixels_label">Умные пиксели</string>
     <string name="quick_settings_smart_pixels_on">Вкл.</string>
     <string name="quick_settings_smart_pixels_off">Выкл.</string>
     <string name="smart_pixels_percent_label">Процент пикселей</string>
     <string name="smart_pixels_percent_format"><xliff:g id="percent" example="25">%d</xliff:g>%%</string>
+     
     <!-- System Theme Re-evaluation Toast -->
     <string name="reevaluating_system_theme">Обновление системной темы… Подождите несколько секунд.</string>
+     
     <!-- VPN tethering QS tile -->
     <string name="vpn_tethering_label">Раздача VPN</string>
     <string name="vpn_tethering_changed_off">Раздача VPN отключена.</string>
     <string name="vpn_tethering_changed_on">Раздача VPN включена.</string>
+     
     <!-- AxDynamicBar strings [CHAR LIMIT=NONE] -->
     <string name="ax_dynamic_bar_timer">Таймер</string>
     <string name="ax_dynamic_bar_stopwatch">Секундомер</string>
@@ -171,15 +212,20 @@
     <string name="ax_dynamic_bar_sports_final">Завершён</string>
     <string name="ax_dynamic_bar_sports_halftime">Перерыв</string>
     <string name="ax_dynamic_bar_sports_upcoming">Предстоит</string>
+     
     <!-- Essential Notifications -->
     <string name="essential_notifications_title">Важные</string>
     <string name="essential_notifications_summary">Важные сообщения и уведомления</string>
+     
     <!-- Sleep Mode -->
     <string name="quick_settings_sleep_mode_label">Спящий режим</string>
+     
     <!-- Wifi Standard. -->
     <string name="status_bar_wifi_standard">Стандарт Wifi</string>
+     
     <!-- Autobrightness tile -->
     <string name="quick_settings_autobrightness_label">Автояркость</string>
+     
     <!-- USB Mode Picker -->
     <string name="usb_mode_picker_title">Выберите режим USB</string>
     <string name="usb_mode_file_transfer">Передача файлов</string>
