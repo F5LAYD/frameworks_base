@@ -20,5 +20,5 @@
     <string name="disable_stacked_mobile_icons_title">Откл. иконку объединённых данных</string>
     <!-- Kill button in notification guts -->
     <string name="force_stop_dlg_title">Принуд. убить?</string>
-    <string name="force_stop_dlg_text">Если принуд. остановить приложение, оно может работать некорректно.</string>
+    <string name="force_stop_dlg_text">Если принуд. убить приложение, оно может работать некорректно.</string>
 </resources>
